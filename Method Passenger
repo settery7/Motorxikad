@@ -1,0 +1,819 @@
+using System;
+using System.Formats.Asn1;
+using System.IO;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
+using CsvHelper;
+using CsvHelper.Configuration;
+using Info;
+using System.Globalization;
+using Microsoft.VisualBasic.FileIO;
+using Tables;
+using MethodDriver;
+
+
+namespace MethodPassenger
+{
+
+    public class PassengerInfoManager : PassengerInfo, FareCalculator
+    {
+        public double baseFare1 { get; set; }
+        public double baseFare2 { get; set; }
+        public double baseFare3 { get; set; }
+        public double kilometer { get; set; }
+
+        public double CalculateFare1(double baseFare, double km)
+        {
+            return (baseFare + (baseFare * 1.35) * km);
+        }
+        public double CalculateFare2(double baseFare)
+        {
+            return (baseFare);
+        }
+        public double CalculateFare3(double baseFare, double km)
+        {
+            return (baseFare + (baseFare * 0.1) * km);
+        }
+        public double SetBaseFare1(double baseFare1)
+        {
+            this.baseFare1 = baseFare1;
+            return baseFare1;
+        }
+        public double SetBaseFare2(double baseFare2)
+        {
+            this.baseFare2 = baseFare2;
+            return baseFare2;
+        }
+        public double SetBaseFare3(double baseFare3)
+        {
+            this.baseFare3 = baseFare3;
+            return baseFare3;
+        }
+        public static void AddPassengerInfo(string filePath, double baseFare1, double baseFare2, double baseFare3)
+        {
+            try
+            {
+                string input;
+                Console.Clear();
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Adding Passenger Info.");
+                Console.ResetColor();
+                PassengerInfo passenger = new PassengerInfo();
+                PassengerInfoManager manager = new PassengerInfoManager();
+                int vehicle, nump = 0, maxp = 0;
+                double km = 0, bfare1 = baseFare1, bfare2 = baseFare2, bfare3 = baseFare3;
+                Console.WriteLine("This is a Kilometer (km) based transit transaction");
+
+                Console.WriteLine("1. Motorcycle");
+                Console.WriteLine("2. Cycle Rickshaw");
+                Console.WriteLine("3. Tricycle");
+                Console.Write("Enter the vehicle you are about to ride: ");
+                if (!int.TryParse(Console.ReadLine(), out vehicle))
+                {
+                    Console.WriteLine("Invalid input. Please enter a number.");
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return;
+                }
+                switch (vehicle)
+                {
+                    case 1:
+
+                        Console.WriteLine($"\nFirst 0.8 KM = {bfare1:F2} || In every KM will be an additional {(bfare1 * 1.35):F2} Php");
+                        Console.Write($"Enter number of kilometers to your destination: ");
+                        if (!double.TryParse(Console.ReadLine(), out km))
+                        {
+                            Console.WriteLine("Enter a valid value for the distance");
+                            Console.WriteLine("\nPress any key to continue...");
+                            Console.ReadKey();
+                            Console.Clear();
+                            return;
+                        }
+                        else if (km <= 0.8)
+                        {
+                            km = 0;
+                        }
+                        maxp = 2;
+                        break;
+                    case 2:
+                        maxp = 3;
+                        Console.WriteLine($"\nStandard Fare is: {bfare2:F2} || Fare is always the same as long as it is in the covered area");
+                        break;
+                    case 3:
+
+                        Console.WriteLine($"\nFirst 1 KM = {bfare3:F2} || In every KM will be an additional {bfare3:F2} Php");
+                        Console.Write($"Enter number of kilometers to your destination: ");
+                        if (!double.TryParse(Console.ReadLine(), out km))
+                        {
+                            Console.WriteLine("Enter a valid value for distance");
+                            Console.WriteLine("\nPress any key to continue...");
+                            Console.ReadKey();
+                            Console.Clear();
+                            return;
+                        }
+                        else if (km <= 1)
+                        {
+                            km = 0;
+                        }
+                        maxp = 6;
+                        break;
+                    default:
+                        Console.WriteLine("Invalid choice. Please select a valid option.");
+                        Console.WriteLine("\nPress any key to continue...");
+                        Console.ReadKey();
+                        Console.Clear();
+                        return;
+                }
+
+                Console.Write($"(Maximum capacity = {maxp})\nEnter number of people that will ride the vehicle: ");
+                int completedPassengerCount = 0;
+                bool loopExecuted = false;
+                if (int.TryParse(Console.ReadLine(), out nump) && nump <= maxp)
+                {
+                    for (int i = 0; i < nump; i++)
+                    {
+                        Console.Clear();
+                        Console.Clear();
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine("Adding a Passenger Info.");
+                        Console.WriteLine($"Traveled kilometers = {km}");
+                        Console.ResetColor();
+                        Console.Write($"Enter Passenger[{i + 1}] First Name: ");
+                        input = Console.ReadLine();
+                        if (!ContainsOnlyLetters(input))
+                        {
+                            Console.WriteLine("Input contains numbers or symbols. Please enter a valid name.");
+                            Console.WriteLine("\nPress any key to exit...");
+                            Console.ReadKey();
+                            Console.Clear();
+                            return;
+                        }
+                        passenger.Fname = ConvertToTitleCase(input);
+
+                        Console.Write($"Enter Passenger[{i + 1}] Last Name: ");
+                        input = Console.ReadLine();
+                        if (ContainsOnlyLetters(input))
+                        {
+                            passenger.Lname = ConvertToTitleCase(input);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Input contains numbers or symbols. Please enter a valid name.");
+                            Console.WriteLine("\nPress any key to exit...");
+                            Console.ReadKey();
+                            Console.Clear();
+                            return;
+                        }
+                        passenger.Lname = ConvertToTitleCase(passenger.Lname);
+
+                        Console.Write($"Enter Passenger[{i + 1}] Sex:");
+                        input = Console.ReadLine();
+
+                        if (input.Length == 1 && (input[0] == 'M' || input[0] == 'm' || input[0] == 'F' || input[0] == 'f'))
+                        {
+                            passenger.Sex = Char.ToUpper(input[0]);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid input. Please enter 'M' or 'F'.");
+                            Console.WriteLine("\nPress any key to exit...");
+                            Console.ReadKey();
+                            Console.Clear();
+                            return;
+                        }
+                        switch (vehicle)
+                        {
+                            case 1:
+                                passenger.FareExpense = manager.CalculateFare1(bfare1, km);
+                                passenger.Vehicle = "Motorcycle";
+                                break;
+                            case 2:
+                                passenger.Vehicle = "Cycle Rickshaw";
+                                passenger.FareExpense = manager.CalculateFare2(bfare2);
+                                break;
+                            case 3:
+                                passenger.Vehicle = "Tricycle";
+                                passenger.FareExpense = manager.CalculateFare3(bfare3, km);
+                                break;
+                        }
+                        Console.WriteLine($"Your fare expense will be: {passenger.FareExpense:F2}");
+                        passenger.Priority = manager.FormatPriorityNumber();
+                        Console.WriteLine($"Your priority code will be: {passenger.Priority}");
+                        passenger.Date = DateTime.Now.ToString();
+                        using (var writer = new StreamWriter(filePath, true))
+                        using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
+                        {
+                            var fileInfo = new FileInfo(filePath);
+                            if (fileInfo.Length == 0)
+                            {
+                                csv.WriteHeader<PassengerInfo>();
+                                csv.NextRecord();
+                            }
+                            csv.WriteRecord(passenger);
+                            csv.NextRecord();
+                        }
+                        if (completedPassengerCount == nump)
+                        {
+                            loopExecuted = true;
+                        }
+
+                        if (!loopExecuted)
+                        {
+                            List<string> lines = File.ReadAllLines(filePath).ToList();
+
+                            int linesToRemove = completedPassengerCount;
+
+                            if (linesToRemove > 0 && lines.Count >= linesToRemove)
+                            {
+                                // Remove the specified number of lines from the end of the list
+                                lines.RemoveRange(lines.Count - linesToRemove, linesToRemove);
+
+                                // Write the modified content back to the file
+                                File.WriteAllLines(filePath, lines);
+                            }
+                        }
+                        Console.WriteLine("Passenger information added successfully.");
+                        Console.WriteLine("\nPress any key to continue...");
+                        Console.ReadKey();
+                    }
+                    Console.WriteLine("\nThank you for your cooperation. Press any key to exit.");
+                    Console.ReadKey();
+                    Console.Clear();
+
+                }
+                else
+                {
+                    Console.WriteLine($"Please enter a valid number less than or equal to {maxp}.");
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                    Console.Clear();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("There's an error: " + ex.Message);
+            }
+        }
+
+        public static bool BookingAddPassengerInfo(string filePath, int DriverID, string vehicleofD, double baseFare1, double baseFare2, double baseFare3, int days, int MService, DateTime lastDate)
+        {
+            try
+            {
+                Console.Clear();
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Adding a Booking Passenger Info.");
+                Console.ResetColor();
+                PassengerInfo passenger = new PassengerInfo();
+                PassengerInfoManager manager = new PassengerInfoManager();
+                int vehicle = 0, completedPassengerCount = 0, nump = 0, maxp = 0, Driver = DriverID;
+                double km = 0, bfare1 = baseFare1, bfare2 = baseFare2, bfare3 = baseFare3;
+                passenger.Vehicle = vehicleofD;
+                switch (passenger.Vehicle)
+                {
+                    case "Motorcycle":
+                        vehicle = 1;
+                        break;
+                    case "Cycle Rickshaw":
+                        vehicle = 2;
+                        break;
+                    case "Tricycle":
+                        vehicle = 3;
+                        break;
+                }
+                Console.WriteLine($"Vechicle Type: {passenger.Vehicle}");
+                switch (vehicle)
+                {
+                    case 1:
+                        Console.WriteLine($"First 0.8 KM = {bfare1:F2} || In every KM will be an additional {(bfare1 * 1.35):F2} Php");
+                        Console.Write($"Enter number of kilometers to your destination: ");
+                        if (!double.TryParse(Console.ReadLine(), out km))
+                        {
+                            Console.WriteLine("Enter a valid value for the distance");
+                            Console.WriteLine("\nPress any key to continue...");
+                            Console.ReadKey();
+                            Console.Clear();
+                            return false;
+                        }
+                        else if (km <= 0.8)
+                        {
+                            km = 0;
+                        }
+                        maxp = 2;
+                        break;
+                    case 2:
+                        maxp = 3;
+                        Console.WriteLine($"\nStandard Fare is: {bfare2:F2} || Fare is always the same as long as it is in the covered area");
+                        break;
+                    case 3:
+                        Console.WriteLine($"\nFirst 1 KM = {bfare3:F2} || In every KM will be an additional {bfare3:F2} Php");
+                        Console.Write($"Enter number of kilometers to your destination: ");
+                        if (!double.TryParse(Console.ReadLine(), out km))
+                        {
+                            Console.WriteLine("Enter a valid value for distance");
+                            Console.WriteLine("\nPress any key to continue...");
+                            Console.ReadKey();
+                            Console.Clear();
+                            return false;
+                        }
+                        else if (km <= 1)
+                        {
+                            km = 0;
+                        }
+                        maxp = 6;
+                        break;
+                    default:
+                        Console.WriteLine("Invalid choice. Please select a valid option.");
+                        Console.WriteLine("\nPress any key to continue...");
+                        Console.ReadKey();
+                        Console.Clear();
+                        return false;
+                }
+                switch (vehicle)
+                {
+                    case 1:
+                        passenger.Vehicle = "Motorcycle";
+                        passenger.FareExpense = manager.CalculateFare1(bfare1, km);
+                        break;
+                    case 2:
+                        passenger.Vehicle = "Cycle Rickshaw";
+                        passenger.FareExpense = manager.CalculateFare2(bfare2);
+                        break;
+                    case 3:
+                        passenger.Vehicle = "Tricycle";
+                        passenger.FareExpense = manager.CalculateFare3(bfare3, km);
+                        break;
+                }
+
+
+                bool loopExecuted = false;
+
+                Console.Write($"(Maximum capacity = {maxp})\nEnter number of people that will ride the vehicle: ");
+                passenger.FareExpense = passenger.FareExpense * days * MService;
+                if (int.TryParse(Console.ReadLine(), out nump) && nump <= maxp)
+                {
+                    for (int i = 0; i < nump; i++)
+                    {
+                        Console.Clear();
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine("Adding a Booking Passenger Info.");
+                        Console.WriteLine($"Traveled kilometers ={km}");
+                        Console.ResetColor();
+                        Console.Write($"Enter Passenger[{i + 1}] First Name: ");
+                        passenger.Fname = Console.ReadLine();
+                        if (!ContainsOnlyLetters(passenger.Fname))
+                        {
+                            Console.WriteLine("Input contains numbers or symbols. Please enter a name without numbers or symbols.");
+                            Console.WriteLine("\nPress any key to continue...");
+                            Console.ReadKey();
+                            Console.Clear();
+                            break;
+
+                        }
+                        passenger.Fname = ConvertToTitleCase(passenger.Fname);
+
+                        Console.Write($"Enter Passenger[{i + 1}] Last Name: ");
+                        passenger.Lname = Console.ReadLine();
+                        if (!ContainsOnlyLetters(passenger.Lname))
+                        {
+                            Console.WriteLine("Input contains numbers or symbols. Please enter a name without numbers or symbols.");
+                            Console.WriteLine("\nPress any key to continue...");
+                            Console.ReadKey();
+                            Console.Clear();
+                            break;
+                        }
+                        passenger.Lname = ConvertToTitleCase(passenger.Lname);
+
+                        Console.Write($"Enter Passenger[{i + 1}] Sex (M for male, F for female):");
+                        string input = Console.ReadLine();
+
+                        if (input.Length == 1 && (input[0] == 'M' || input[0] == 'm' || input[0] == 'F' || input[0] == 'f'))
+                        {
+                            passenger.Sex = Char.ToUpper(input[0]);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid input. Please enter .");
+                            Console.WriteLine("\nPress any key to exit...");
+                            Console.ReadKey();
+                            Console.Clear();
+                            break;
+                        }
+
+
+                        Console.WriteLine($"The book will cost you: {passenger.FareExpense:F2}");
+                        passenger.Priority = manager.FormatPriorityNumber();
+                        Console.WriteLine($"Your priority code will be: {passenger.Priority}");
+                        passenger.Date = DateTime.Now.ToString();
+                        passenger.BookingDate = DateTime.Now; // Set the booking date
+                        passenger.Driver = Driver;
+                        passenger.endofBooking = lastDate;
+
+                        using (var writer = new StreamWriter(filePath, true))
+                        using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
+                        {
+                            var fileInfo = new FileInfo(filePath);
+                            if (fileInfo.Length == 0)
+                            {
+                                csv.WriteHeader<PassengerInfo>();
+                                csv.NextRecord();
+                            }
+                            csv.WriteRecord(passenger);
+                            csv.NextRecord();
+                        }
+                        Console.WriteLine("Passenger information added successfully.");
+                        Console.WriteLine("\nThank you for your cooperation. Press any key to contiue");
+                        completedPassengerCount++;
+                        Console.ReadKey();
+                    }
+                    if (completedPassengerCount == nump)
+                    {
+                        loopExecuted = true;
+                    }
+                    if (loopExecuted == false)
+                    {
+                        List<string> lines = File.ReadAllLines(filePath).ToList();
+
+                        int linesToRemove = completedPassengerCount;
+
+                        if (linesToRemove > 0 && lines.Count >= linesToRemove)
+                        {
+                            // Remove the specified number of lines from the end of the list
+                            lines.RemoveRange(lines.Count - linesToRemove, linesToRemove);
+
+                            // Write the modified content back to the file
+                            File.WriteAllLines(filePath, lines);
+                        }
+                        return false;
+                    }
+                    Console.WriteLine("Passenger information(s) added successfully.");
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return loopExecuted;
+
+                }
+                else
+                {
+                    Console.WriteLine("Invalid choice. Please select a valid option.");
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return false;
+                }
+
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine("There's an error: " + ex.Message);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("There's an error: " + ex.Message);
+                return false;
+            }
+
+        }
+        public static void DeleteInfoByDate(string filePath, string dateToDelete)
+        {
+            try
+            {
+                // Read all lines from the CSV file
+                string[] lines = File.ReadAllLines(filePath);
+
+                // Check if file is empty
+                if (lines.Length == 0)
+                {
+                    Console.WriteLine("No data available to delete.");
+                    return;
+                }
+
+                bool foundDate = false;
+                List<string> updatedLines = new List<string>();
+
+                foreach (string line in lines)
+                {
+                    var columns = line.Split(','); // Assuming CSV columns are separated by commas
+
+                    // Assuming the date string is in the sixth column
+                    if (columns.Length > 5 && columns[5].Trim() == dateToDelete)
+                    {
+                        foundDate = true;
+                        continue; // Skip the line that matches the date (to delete it)
+                    }
+
+                    updatedLines.Add(line);
+                }
+
+                if (!foundDate)
+                {
+                    Console.WriteLine($"Date {dateToDelete} not found.");
+                    return;
+                }
+
+                // Write the updated content back to the CSV file
+                File.WriteAllLines(filePath, updatedLines);
+
+                Console.WriteLine($"Date {dateToDelete} information deleted successfully.");
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("There's an error: " + ex.Message);
+            }
+        }
+
+
+
+
+
+        public static void DisplayPassengerInfo(string filePath)
+        {
+            try
+            {
+                using (var reader = new StreamReader(filePath))
+                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                {
+                    var records = csv.GetRecords<PassengerInfo>().ToList();
+
+                    Tablever2 table = new Tablever2();
+
+                    table.hders("Priority Number", "First Name", "Last Name", "Sex", "Vehicle", "Fare Expense", "Booked Date");
+                    foreach (var record in records)
+                    {
+                        table.AddRow(
+                            record.Priority,
+                            record.Fname,
+                            record.Lname,
+                            record.Sex.ToString(),
+                            record.Vehicle,
+                            record.FareExpense.ToString(),
+                            record.Date
+                        );
+                    }
+
+                    Console.WriteLine("Passenger Information Table:");
+                    Console.WriteLine(table.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+            }
+        }
+        public static void BookedDisplayPassengerInfo(string filePath)
+        {
+            try
+            {
+                using (var reader = new StreamReader(filePath))
+                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                {
+                    var records = csv.GetRecords<PassengerInfo>().ToList();
+
+                    Tablever2 table = new Tablever2();
+
+                    table.hders("Priority Number", "First Name", "Last Name", "Sex", "Vehicle", "Fare Expense", "Booking Date", "Last Day of the Booked Service", "Assigned Driver");
+
+
+                    foreach (var record in records)
+                    {
+                        table.AddRow(
+                            record.Priority,
+                            record.Fname,
+                            record.Lname,
+                            record.Sex.ToString(),
+                            record.Vehicle,
+                            record.FareExpense.ToString(),
+                            record.Date,
+                            record.endofBooking.ToString(),
+                            record.Driver.ToString()
+                        );
+                    }
+
+                    Console.WriteLine("Passenger Information Table:");
+                    Console.WriteLine(table.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+            }
+        }
+        public static void SearchBookedPassengerInfo(string filePath)
+        {
+            try
+            {
+                Console.Write("Search a passenger's info: ");
+                string searchInput = Console.ReadLine();
+
+                using (var reader = new StreamReader(filePath))
+                using (var csv = new CsvReader(reader, System.Globalization.CultureInfo.InvariantCulture))
+                {
+                    var records = csv.GetRecords<PassengerInfo>().ToList();
+                    var matchingPassengers = records.Where(passenger =>
+                        passenger.Fname.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        passenger.Lname.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        passenger.Priority.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        passenger.Vehicle.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        passenger.FareExpense.ToString().IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        passenger.Date.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0
+                    ).ToList();
+
+                    if (matchingPassengers.Any())
+                    {
+                        Console.WriteLine("\nMatching Passenger(s) Information:\n");
+                        foreach (var matchingPassenger in matchingPassengers)
+                        {
+                            Console.WriteLine($"Priority Number: {matchingPassenger.Priority}");
+                            Console.WriteLine($"Name: {matchingPassenger.Fname} {matchingPassenger.Lname}");
+                            Console.WriteLine($"Sex: {matchingPassenger.Sex}");
+                            Console.WriteLine($"Vehicle: {matchingPassenger.Vehicle}");
+                            Console.WriteLine($"Fare Expense: {matchingPassenger.FareExpense}");
+                            Console.WriteLine($"Booking Date: {matchingPassenger.Date}");
+                            Console.WriteLine();
+                        }
+                        Console.WriteLine("\nPress any key to exit...");
+                        Console.ReadKey();
+                        Console.Clear();
+                        return;
+                    }
+                    else
+                    {
+                        Console.WriteLine("No passengers found matching the search criteria.");
+                        Console.WriteLine("\nPress any key to continue...");
+                        Console.ReadKey();
+                        Console.Clear();
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("An error occurred while searching for passengers: {0}", ex.Message);
+            }
+        }
+        public static void SearchPassengerInfo(string filePath)
+        {
+            try
+            {
+                Console.Write("Search a passenger's info: ");
+                string searchInput = Console.ReadLine();
+
+                using (var reader = new StreamReader(filePath))
+                using (var csv = new CsvReader(reader, System.Globalization.CultureInfo.InvariantCulture))
+                {
+                    var records = csv.GetRecords<PassengerInfo>().ToList();
+                    var matchingPassengers = records.Where(passenger =>
+                        passenger.Fname.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        passenger.Lname.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        passenger.Priority.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        passenger.Vehicle.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        passenger.Date.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0
+                    ).ToList();
+
+                    if (matchingPassengers.Any())
+                    {
+                        Console.WriteLine("\nMatching Passenger(s) Information:\n");
+                        foreach (var matchingPassenger in matchingPassengers)
+                        {
+                            Console.WriteLine($"Priority Number: {matchingPassenger.Priority}");
+                            Console.WriteLine($"Name: {matchingPassenger.Fname} {matchingPassenger.Lname}");
+                            Console.WriteLine($"Sex: {matchingPassenger.Sex}");
+                            Console.WriteLine($"Vehicle: {matchingPassenger.Vehicle}");
+                            Console.WriteLine($"Fare Expense: {matchingPassenger.FareExpense}");
+                            Console.WriteLine($"Booking Date: {matchingPassenger.Date}");
+                            Console.WriteLine();
+                        }
+                        Console.WriteLine("\nPress any key to exit...");
+                        Console.ReadKey();
+                        Console.Clear();
+                        return;
+                    }
+                    else
+                    {
+                        Console.WriteLine("No passengers found matching the search criteria.");
+                        Console.WriteLine("\nPress any key to continue...");
+                        Console.ReadKey();
+                        Console.Clear();
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("An error occurred while searching for passengers: {0}", ex.Message);
+            }
+        }
+        public static void DisplayAsTable(List<DriverInfoManager> data)
+        {
+            if (data.Count == 0)
+            {
+                Console.WriteLine("No data to display.");
+                return;
+            }
+
+            // Calculate column widths
+            int[] columnWidths = new int[]
+            {
+        // Define the desired column widths for each property
+        8, 15, 15, 5, 5, 7, 20, 15, 15 // Adjust these widths based on your data
+            };
+
+            // Print the headers
+            string[] headers = { "DriverID", "Last Name", "First Name", "Middle Initial", "Age", "Sex", "Address", "License Number", "Vehicle" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                Console.Write(headers[i].PadRight(columnWidths[i] + 2));
+            }
+            Console.WriteLine();
+
+            // Print a horizontal line
+            for (int i = 0; i < headers.Length; i++)
+            {
+                Console.Write(new string('═', columnWidths[i]) + "══");
+            }
+            Console.WriteLine();
+
+            // Print the data
+            foreach (var driver in data)
+            {
+                string[] driverData = { driver.DriverID.ToString(), driver.Lname, driver.Fname, driver.Mname.ToString(), driver.Age.ToString(), driver.Sex.ToString(), driver.Address, driver.Licensenumber, driver.Vehicle };
+
+                for (int i = 0; i < driverData.Length; i++)
+                {
+                    Console.Write(driverData[i].PadRight(columnWidths[i] + 2));
+                }
+                Console.WriteLine();
+            }
+        }
+        public DateTime GetLastDayForFormattedPriority(string filePath, string formattedPriorityToSearch)
+        {
+            DateTime lastDay = DateTime.MinValue;
+
+            try
+            {
+                using (var reader = new StreamReader(filePath))
+                using (var csv = new CsvReader(reader, System.Globalization.CultureInfo.InvariantCulture))
+                {
+                    // Assuming PassengerInfo class structure matches the CSV file structure
+                    var records = csv.GetRecords<PassengerInfo>();
+
+                    foreach (var record in records)
+                    {
+                        // Assuming 'FormattedPriority' represents the column in CSV with the specified format
+                        if (record.Priority == formattedPriorityToSearch)
+                        {
+                            lastDay = record.endofBooking; // Assign the 'lastDay' value from the matching record
+                            break; // Exit loop once a match is found
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error reading CSV file: " + ex.Message);
+            }
+
+            return lastDay;
+        }
+        public static bool IsBookingValid(DateTime bookingDate)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static List<PassengerInfo> ReadPassengerInfo(string filePath)
+        {
+            using (var reader = new StreamReader(filePath))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            {
+                var records = csv.GetRecords<PassengerInfo>().ToList();
+                return records;
+            }
+        }
+
+        public int GenerateRandomNumber()
+        {
+            throw new NotImplementedException();
+
+        }
+
+        public string CapitalizeName()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool ContainsNumber()
+        {
+            throw new NotImplementedException();
+
+        }
+
+        public bool LicenseChecker()
+        {
+            throw new NotImplementedException();
+
+        }
+    }
+}
