@@ -1,0 +1,1569 @@
+using Info;
+using MethodDriver;
+using System;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Globalization;
+using System.Configuration;
+using System.Collections.Generic;
+using Microsoft.VisualBasic.FileIO;
+using System.Reflection.Emit;
+using System.IO;
+using Tables;
+using MethodPassenger;
+
+namespace Motorxikad
+{
+
+    public class MotorxikadRun
+    {
+        static void SearchAndDisplayResults(string filePath, string searchTerm)
+        {
+            List<DriverInfoManager> foundData = SearchInCSV(filePath, searchTerm);
+            PassengerInfoManager.DisplayAsTable(foundData);
+        }
+
+        static List<DriverInfoManager> SearchInCSV(string filePath, string searchTerm)
+        {
+            List<DriverInfoManager> foundData = new List<DriverInfoManager>();
+            return foundData;
+        }
+        static string HideInput()
+        {
+            string input = "";
+            ConsoleKeyInfo keyInfo;
+
+            do
+            {
+                keyInfo = Console.ReadKey(true);
+
+                if (keyInfo.Key == ConsoleKey.Backspace && input.Length > 0)
+                {
+                    input = input.Substring(0, input.Length - 1);
+                    Console.Write("\b \b"); // Clear the character from the console
+                }
+                else if (keyInfo.Key != ConsoleKey.Enter)
+                {
+                    Console.Write("*");
+                    input += keyInfo.KeyChar;
+                }
+            } while (keyInfo.Key != ConsoleKey.Enter);
+
+            Console.WriteLine(); // Add a newline after the user presses Enter
+            return input;
+        }
+
+        static double baseFare1 = 20;
+        static double baseFare2 = 15;
+        static double baseFare3 = 10;
+        static string ADMINDPWORD = "setter321";
+        static double ReadNonZeroValue(string vehicle)
+        {
+            double value = 0;
+            while (value <= 0)
+            {
+                Console.Write($"Enter base fare for {vehicle}: ");
+                if (!double.TryParse(Console.ReadLine(), out value))
+                {
+                    Console.WriteLine("Please enter a valid numeric value.");
+                }
+                else if (value <= 0)
+                {
+                    Console.WriteLine("Please enter a valid non-zero value.");
+                }
+            }
+            return value;
+        }
+
+        static void Main(string[] args)
+        {
+
+            string driverFilePath = @"C:\Users\User\Downloads\driver_info.csv";
+            string passengerFilePath = @"C:\Users\User\Downloads\passengerlist.csv";
+            string passengerFilePath1 = @"C:\Users\User\Downloads\Bookingpassengerlist.csv";
+            string streetart = "Street Art.txt";
+            string text = File.ReadAllText(streetart);
+
+
+            DriverInfoManager reader = new DriverInfoManager();
+            DriverInfoManager driverInfoManager = new DriverInfoManager();
+            PassengerInfoManager manager = new PassengerInfoManager();
+            List<Driverinfo> existingDriverInfo;
+            Driverinfo driverToUpdate;
+            List<PassengerInfo> existingPassengerInfo;
+            Tablever2 table = new Tablever2();
+            Tablever2 pass = new Tablever2();
+            Tablever2 pass2 = new Tablever2();
+            string input, bookingDateInput;
+            int age, selectedVehicleType = 0;
+            char userInput;
+            string[] Dheaders = { "Driver ID", "Last Name", "First Name", "Middle Initial", "Age", "Sex", "Address", "License Number", "Vehicle" };
+            string[] Pheaders = { "Date", "First Name", "Last Name", "Sex", "Fare Expense", "Priority Code", "Vehicle" };
+            int[] columnWidths = new int[Dheaders.Length];
+            table.hders("Driver ID", "First Name", "Last Name", "Middle Initial", "Age", "Sex", "Address", "License Number", "Vehicle", "Booking Slot 1", "Booking Slot 2", "Last Day of Slot 1", "Last Day of Slot 2", "Phone Number");
+            pass.hders("Priority Number", "First Name", "Last Name", "Sex", "Vehicle", "Booking Date");
+
+
+            LoadBaseFares();
+            
+            string motorxikad =
+
+@"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*:+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%#+.......=*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%#=....-#%#=....=*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%#-....=#%%%%%%%#+....:+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%% *-....+#%%%%%%%%%%%%%#*-...:+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%% +:...:*%%%%%%%%%%%%%%%%%%%%% *-....-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% +....:#%%%%%%%%%%%%%%%%%%%%%%%%%%%#=....-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%#=:...-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#+.....#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% +.:.=%%%%%%%%%%%%%%%%%% *...+#%%%%%%%%%%%%%%%%%*...-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% +.:*%%%%%%%%%%%%%%%#+....:.:..=#%%%%%%%%%%%%%%%#..-%%%%%%%%%%%%%%%#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% +..*%%%%%%%%%%%%#=....-#%%%%=....-*%%%%%%%%%%%%#..-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%###%%%##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% +..*%%%%%%%%%*= .... =%%%%%%%%%%% +:...:*%%%%%%%%%#..-%%%%%*==*%%%%%%%%%%%%%*==*%%%%%%%%%%%%%%%%%%:.%%########%%%%%%%%%%%%%%%%%%%%%%%%%%#==*%%%%%%%%%%%+=+%%=.:%%*.=%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%+.:%
+%%%%%%%% +..*%%%%%% *-....+%%%%%%%%%%%%%%%%% *-.:..+#%%%%%#..-%%%%%=...:#%%%%%%%%%#-...+%%%%%%%###########:.###############%%%%%%%%%%%%%%%%%%%%%%#:.:#%%%%%%%#..+%%%%%%%%*.=%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%+.:%%
+%%%%%%%% +..*%%% +:...:*%%%%%%%%%%%%%%%%%%%%%%%#-....=#%%#..-%%%%%=.-*:.+%%%%%%%*..*-.+%%%=----------=###:.------###*-----------#####---------*%%%*..=%%%%%-..#%%%%+-=%%*:=%%%%%%%%+--*%-------------#%%%*----------:.:%%%
+%%%%%%%% +..*%% *..:#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#=..-%%#..-%%%%%=.-%#-..#%%%#..-%%-.+##..+********+..##:.******##:.+*********:.##*..********#%%%%#-.:#%#:.*%%%%%%=.:%%*.=%%%%%%#..:#%%************:.+%=.:*********:.:%%%
+%%%%%%%% +..*%% *..*%%%%%%%%%%%%%%=.:#%%%%%%%%%%%%%#..-%%#..-%%%%%=.-%%%#..=%=..*%%#-.+##..##########..*#:.%#######..#%%%%%%%%%-.##+.+########%%%%%%%#....:#%#%%%%%=.:%%*:=%%%%%-..#%%%%%%%%%%%%%%%%+.=%:.*%%%%%%%%%+.:%%%
+%%%%%%%% +..*%% *:.*%%%%%%%%%%#:.:......#%%%%%%%%%%#:.-%%#..-%%%#%=.-%%%%%-..:=#####-.+##..##########..*#:.########..#%%%%%%%%%-.##+.+#######%#####%%%#...#%%%%%%%%=.:%%*.=%%%*..+%%%%%%%%%%%%%%%%%%+.=%:.*%%%%%%%%%+.:%%%
+%%%%%%%% +..*%% *..*%%%%%%% *:.... =%%%#:....*#%%%%%%#.:-%%#..-%%%%%=.-%%%%%%#.#######-.+##..########%#..*#:.########..#%%%%%%%%%-.##+.+###############:.:#..-%%%%%%%=.:%%*.......:#%%%%%%..............=%:.*%%%%%%%%%+.:%
+%%%%%%%% +..*%% *..*%%%#*....:*%%%%%%%%%#-....=#%%%#..-%%#..-%%%%%=.-%%%%%##########-.+##..##########..*#:.########:.#####%%%##-.##+.+#############*..#%%%=..*%%%%%=.:%%*.=%%%%#..=#%%%%..*%%%%%%%%%+.=%:.*%%%%%%%%%+.:%%%
+%%%%%%%% +..*%% *:.*%% -...-#%%%%%%%%%%%%%%%#=...:%%#..-%%#..-%%%%%=.-%###%##########-.+##..##########..##:.*#######..##########:.##+.=###########*..=#####%#-.-#%%%=.:%%*.=%%%%%%+..+%%%:.+%%%%%%%%%+.=%-.=%%%%%%%%%=.:%%
+%%%%%%%% +..*%% *..*%% -..#%%%%%%%%%%%%%%%%%%%#..:%%#..-%%#..-%%%%%=.-###############-.+###:...........*###-......##*-...........+##+.=##########=.:######%##%*..+%%=.:%%*.=%%%%%%%%-..#%#-............=%%=......:.....:%%
+%%%%%%%% +..*%% *..*%% -..#%%%%%%%%%%%%%%%%%%%#..:%%#..-%%#..-%%%%%%###########%%###############################################################################%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% +..*%% *..*%% -..#%%%%%%%%%%%%%%%%%%%#..:%%#..-%%#..-%%%%%#############################################################################################%%%%%%%%%%%%%%#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% +...:**..*%% -..#%%%%%%%%%%%%%%%%%%%#..:%%#..-#:...-%%##################################################################################################%%%%%%%%%%%%#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%#:.....*%%-..#%%%%%%%%%%%%%%%%%%%#..:%%#......#%#########################################################################################################%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%#-....=-..#%%%%%%%%%%%%%%%%%%%#..:*:...:#%%%%%##########################################################################################%#############%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%#=.....*%%%%%%%%%%%%%%%%%%%#.....-#%%%%%############################################################################################################%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%=::..:*#%%%%%%%%%%%%#-....-#%%%%###############%#######################################################################################%#############%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% *:...:+#%%%%%%*:..:.=%%%%%%#%#####################################################################################################################%%%%%%%%%%%########%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% *-:.:.=#+:.:.:+#%%%%%%%%#########################################################################################################################%%%%%%%%%%#%######%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#=..:..-*%%%%%%%%%%%###########################################################################################################################%%%%%#############%%%%###%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#*#%%%%%%%%%%%%%#######################*##########################################################################################%##################################%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#########################**############################################################################################################################%%%%%%%%%%%%%%%%%%%"
+        ;
+            Console.WriteLine(motorxikad);
+            int totalBars = 50; // Total number of bars in the loading animation
+            int totalTimeInMilliseconds = 190; // Total time for the animation in milliseconds
+            int animationDuration = totalTimeInMilliseconds / totalBars; // Duration for each bar in milliseconds
+            Console.ReadKey();
+            Console.Write("Loading:\x1b[44m ");
+            for (int i = 0; i < totalBars; i++)
+            {
+                Console.Write("\x1b[47m "); // Print a bar
+                Thread.Sleep(1); // Delay for each bar
+            }
+            Console.WriteLine("\x1b[44m \u001b[0m Loading complete!\x1b[0m");
+            Console.ReadKey();
+            Console.Clear(); 
+
+
+            try
+            {
+                if (File.Exists(driverFilePath))
+                {
+                    DriverInfoManager.AutomaticUpdate(driverFilePath);
+                }
+                else
+                {
+                    Console.Clear();
+                }
+
+                while (true)
+                {
+
+                    string[] MENU = {
+                                         "╔═════════════════════════════════════════╗",
+                                         "║          Welcome to MotorXikad          ║",
+                                         "╠═════════════════════════════════════════╣",
+                                         "║ Select an option:                       ║",
+                                         "║ 1. Book Motorxikad                      ║",
+                                         "║ 2. Monthly-Book Motorxikad Driver       ║",
+                                         "║ 3. Display Motorxikad Driver Info       ║",
+                                         "║ 4. Search Motorxikad Driver Info        ║",
+                                         "║ 5. Display Featured Map    (Inayagan)   ║",
+                                         "║ \u001b[31m6. Type Exit to Exit\u001b[0m                    ║",
+                                         "╚═════════════════════════════════════════╝"
+                                        };
+                    foreach (string line in MENU)
+                    {
+                        Console.WriteLine(line);
+                    }
+                    string Pchoice = Console.ReadLine();
+                    int choice;
+                    if (Pchoice == "EXIT")
+                    {
+                        Environment.Exit(0);
+                    }
+                    if (Pchoice == "ADMIN")
+                    {
+                        Console.Write("Enter admin password: ");
+                        string enteredPassword = HideInput();
+
+                        if (enteredPassword == ADMINDPWORD)
+                        {
+                            Console.Clear();
+                            while (true)
+                            {
+                                string[] ADMINMENU = {
+                                         "╔═════════════════════════════════════════╗",
+                                         "║        WELCOME ADMIN OF MOTORXIKAD      ║",
+                                         "╠═════════════════════════════════════════╣",
+                                         "║ 1. Add a new Driver info                ║",
+                                         "║ 2. Display Driver infos                 ║",
+                                         "║ 3. Search a Driver info                 ║",
+                                         "║ 4. Update Driver info                   ║",
+                                         "║ 5. Delete Driver info                   ║",
+                                         "╠═════════════════════════════════════════╣",
+                                         "║ 6. Book Motorxikad                      ║",
+                                         "║ 7. Display Passenger infos              ║",
+                                         "║ 8. Search a Passenger infos             ║",
+                                         "║ 9. Delete a Passenger infos             ║",
+                                         "╠═════════════════════════════════════════╣",
+                                         "║ 10. Monthly-Book Motorxikad Driver      ║",
+                                         "║ 11. Display Monthly-Booked Passengers   ║",
+                                         "║ 12. Search a Monthly-Booked Passenger   ║",
+                                         "║ 13. Delete a Monthly-Booked Passenger   ║",
+                                         "╠═════════════════════════════════════════╣",
+                                         "║ 14. Set Base Fare of MotorXikad         ║",
+                                         "║ 15. Set a New Admin Password            ║",
+                                         "╚═════════════════════════════════════════╝",
+                                         " \u001b[31mType Exit for Exit\u001b[0m                        ",
+                                         " Select an option:                         ",
+                                         "                            "
+
+                                        };
+                                foreach (string line in ADMINMENU)
+                                {
+                                    Console.WriteLine(line);
+                                }
+                                // Password matches the predefined value, grant access to admin functions
+                                string achoice = Console.ReadLine();
+
+                                if (!int.TryParse(achoice, out int aoption))
+                                {
+                                    if (achoice == "EXIT")
+                                    {
+                                        Console.WriteLine("Exiting ADMIN Menu.\nPress any key to continue...");
+                                        Console.ReadKey();
+                                        Console.Clear();
+                                        break;
+                                    }
+                                    Console.WriteLine("Invalid input. Please enter a number.\nPress any key to continue...");
+                                    Console.ReadKey();
+                                    Console.Clear();
+                                    continue;
+                                }
+                                switch (aoption)
+                                {
+                                    case 1:
+                                        // Add driver
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Adding Driver Info.");
+                                        Console.ResetColor();
+                                        DriverInfoManager.AddDriverInfo(driverFilePath);
+                                        break;
+                                    case 2:
+                                        //display driver
+                                        Console.Clear();
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Displaying Driver Info.");
+                                        Console.ResetColor();
+                                        existingDriverInfo = DriverInfoManager.ReadDriverInfo(driverFilePath);
+                                        string[] lines = File.ReadAllLines(driverFilePath).Skip(1).ToArray();
+                                        if (lines.Length == 0)
+                                        {
+                                            Console.WriteLine("No data available at the moment.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        if (File.Exists(driverFilePath))
+                                        {
+                                            DriverInfoManager.DisplayDriverInfo(driverFilePath);
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("The file is empty at the moment");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                        }
+                                        break;
+                                    case 3:
+                                        Console.Clear();
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Searching Driver Info.");
+                                        Console.ResetColor();
+                                        DriverInfoManager.DisplayDriverInfo(driverFilePath);
+                                        DriverInfoManager.SearchDriverInfo(driverFilePath);
+                                        break;
+                                    case 4:
+                                        //update driver
+                                        Console.Clear();
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Updating a Driver Info.");
+                                        Console.ResetColor();
+                                        existingDriverInfo = DriverInfoManager.ReadDriverInfo(driverFilePath);
+                                        lines = File.ReadAllLines(driverFilePath).Skip(1).ToArray();
+                                        if (lines.Length == 0)
+                                        {
+                                            Console.WriteLine("No data available at the moment.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        if (File.Exists(driverFilePath))
+                                        {
+                                            DriverInfoManager.DisplayDriverInfo(driverFilePath);
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("The file is empty at the moment");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                        }
+
+                                        Console.WriteLine("\nEnter the Driver ID to update:");
+                                        int driverIDToUpdate;
+                                        if (!int.TryParse(Console.ReadLine(), out driverIDToUpdate))
+                                        {
+                                            Console.WriteLine("Please enter a valid Driver ID:");
+                                            break;
+                                        }
+
+                                        // Find the driver in the list of drivers by ID
+                                        driverToUpdate = existingDriverInfo.FirstOrDefault(d => d.DriverID == driverIDToUpdate);
+                                        if (driverToUpdate != null)
+                                        {
+                                            Console.ForegroundColor = ConsoleColor.Green;
+                                            Console.WriteLine($"Just press [ENTER] if you don't want to change the current info");
+                                            Console.ResetColor();
+                                            Console.WriteLine($"\nEnter updated information for Driver ID {driverIDToUpdate}:");
+                                            Console.Write("Enter new First Name: ");
+                                            string updatedFirstName = Console.ReadLine();
+                                            if (!string.IsNullOrWhiteSpace(updatedFirstName))
+                                            {
+                                                if (!DriverInfoManager.ContainsOnlyLetters(updatedFirstName))
+                                                {
+                                                    Console.WriteLine("Input contains invalid characters. Please enter a name without numbers.");
+                                                    Console.WriteLine("\nPress any key to exit...");
+                                                    Console.ReadKey();
+                                                    Console.Clear();
+                                                    break;
+                                                }
+                                                updatedFirstName = DriverInfoManager.ConvertToTitleCase(updatedFirstName);
+                                                driverToUpdate.Fname = updatedFirstName;
+                                            }
+                                            Console.Write("Enter new Last Name: ");
+                                            string updatedLastName = Console.ReadLine();
+                                            if (!string.IsNullOrWhiteSpace(updatedLastName))
+                                            {
+                                                if (!DriverInfoManager.ContainsOnlyLetters(updatedLastName))
+                                                {
+                                                    Console.WriteLine("Input contains numbers. Please enter a name without numbers.");
+                                                    Console.WriteLine("\nPress any key to exit...");
+                                                    Console.ReadKey();
+                                                    Console.Clear();
+                                                    break;
+                                                }
+                                                updatedLastName = DriverInfoManager.ConvertToTitleCase(updatedLastName);
+                                                driverToUpdate.Lname = updatedLastName;
+                                            }
+
+                                            Console.Write("Enter new Middle Initial: ");
+                                            input = Console.ReadLine();
+                                            string updatedMname;
+                                            if (!string.IsNullOrEmpty(input))
+                                            {
+                                                if (input.Length == 1)
+                                                {
+                                                    if (!DriverInfoManager.ContainsOnlyLetters(input))
+                                                    {
+                                                        Console.WriteLine("Input contains numbers. Please enter a name without numbers.");
+                                                        Console.WriteLine("\nPress any key to exit...");
+                                                        Console.ReadKey();
+                                                        Console.Clear();
+                                                        break;
+                                                    }
+                                                    updatedMname = input;
+                                                    driverToUpdate.Mname = updatedMname[0];
+                                                }
+                                                else
+                                                {
+                                                    Console.WriteLine("Enter a single character only");
+                                                    Console.WriteLine("\nPress any key to exit...");
+                                                    Console.ReadKey();
+                                                    Console.Clear();
+                                                    break;
+                                                }
+                                            }
+
+                                            Console.Write("Enter Driver Sex \u001b[32m(M for Male or F for female)\x1b[0m: ");
+                                            input = Console.ReadLine();
+                                            string updatedSex;
+                                            if (!string.IsNullOrEmpty(input))
+                                            {
+                                                if (input.Length == 1 && (input[0] == 'M' || input[0] == 'm' || input[0] == 'F' || input[0] == 'f'))
+                                                {
+                                                    updatedSex = input;
+                                                    driverToUpdate.Sex = updatedSex[0];
+                                                }
+                                                else
+                                                {
+                                                    Console.WriteLine("Invalid input. Please enter 'M' or 'F'.");
+                                                    Console.WriteLine("\nPress any key to exit...");
+                                                    Console.ReadKey();
+                                                    Console.Clear();
+                                                    break;
+                                                }
+                                            }
+
+                                            int vehicle;
+                                            Console.WriteLine("1. Motorcycle");
+                                            Console.WriteLine("2. Cycle Rickshaw");
+                                            Console.WriteLine("3. Tricycle");
+                                            Console.Write("Enter the vehicle you are about to use: ");
+                                            input = Console.ReadLine();
+                                            if (!string.IsNullOrEmpty(input))
+                                            {
+                                                if (!int.TryParse(input, out vehicle) || vehicle < 1 || vehicle > 3)
+                                                {
+                                                    Console.WriteLine("Invalid input. Please enter a number.");
+                                                    Console.WriteLine("\nPress any key to exit...");
+                                                    Console.ReadKey();
+                                                    Console.Clear();
+                                                    break;
+                                                }
+                                                switch (vehicle)
+                                                {
+                                                    case 1:
+                                                        driverToUpdate.Vehicle = "Motorcycle";
+                                                        break;
+                                                    case 2:
+                                                        driverToUpdate.Vehicle = "Cycle Rickshaw";
+                                                        break;
+                                                    case 3:
+                                                        driverToUpdate.Vehicle = "Tricycle";
+                                                        break;
+                                                }
+                                            }
+
+                                            Console.Write("Enter new Address: ");
+                                            string updatedAddress = Console.ReadLine();
+                                            if (!string.IsNullOrWhiteSpace(updatedFirstName))
+                                            {
+                                                updatedFirstName = DriverInfoManager.ConvertToTitleCase(updatedAddress);
+                                                driverToUpdate.Address = updatedAddress;
+                                            }
+
+                                            Console.Write("Enter new License Number \u001b[32m(sample format Z00-00-000000)\x1b[0m: ");
+                                            string updatedLicenseNumber = Console.ReadLine();
+                                            if (!string.IsNullOrEmpty(updatedLicenseNumber))
+                                            {
+                                                if (!DriverInfoManager.LicenseChecker(updatedLicenseNumber))
+                                                {
+                                                    Console.WriteLine("Please input that is acceptable in the format above.");
+                                                    Console.WriteLine("\nPress any key to exit...");
+                                                    Console.ReadKey();
+                                                    Console.Clear();
+                                                    break;
+                                                }
+                                                driverToUpdate.Licensenumber = updatedLicenseNumber;
+                                            }
+
+                                            Console.Write("Enter new age: ");
+                                            string updatedAge;
+                                            input = Console.ReadLine();
+                                            if (!string.IsNullOrEmpty(input))
+                                            {
+                                                if (int.TryParse(input, out age))
+                                                {
+                                                    if (age > 17 && age < 60)
+                                                    {
+                                                        updatedAge = age.ToString();
+                                                        driverToUpdate.Age = int.Parse(updatedAge);
+                                                    }
+                                                    else
+                                                    {
+                                                        Console.WriteLine("Age must be between 17 and 60.");
+                                                        Console.WriteLine("\nPress any key to exit...");
+                                                        Console.ReadKey();
+                                                        break;
+
+                                                    }
+
+                                                }
+                                                else
+                                                {
+                                                    Console.WriteLine("Please an acceptable value of age.");
+                                                    Console.WriteLine("\nPress any key to exit...");
+                                                    Console.ReadKey();
+                                                    Console.Clear();
+                                                    break;
+                                                }
+                                            }
+
+                                            Console.Write("Enter book1 new value \u001b[32m[1 for  true or 2 for false]\x1b[0m: ");
+                                            string book1Input = Console.ReadLine();
+                                            bool updatedBook1;
+                                            if (!string.IsNullOrEmpty(book1Input))
+                                            {
+                                                if (book1Input == "1")
+                                                {
+                                                    updatedBook1 = true;
+                                                    driverToUpdate.book1 = updatedBook1;
+                                                }
+                                                else if (book1Input == "2")
+                                                {
+                                                    updatedBook1 = false;
+                                                    driverToUpdate.book1 = updatedBook1;
+                                                }
+                                                else
+                                                {
+                                                    Console.WriteLine("Invalid input for book1.");
+                                                    Console.WriteLine("\nPress any key to exit...");
+                                                    Console.ReadKey();
+                                                    Console.Clear();
+                                                    break;
+                                                }
+                                            }
+
+                                            Console.Write("Enter book2 new value \u001b[32m[1 for  true or 2 for false]\x1b[0m: ");
+                                            string book2Input = Console.ReadLine();
+                                            bool updatedBook2;
+                                            if (!string.IsNullOrEmpty(book2Input))
+                                            {
+                                                if (book2Input == "1")
+                                                {
+                                                    updatedBook2 = true;
+                                                    driverToUpdate.book2 = updatedBook2;
+
+                                                }
+                                                else if (book2Input == "2")
+                                                {
+                                                    updatedBook2 = false;
+                                                    driverToUpdate.book2 = updatedBook2;
+
+                                                }
+                                                else
+                                                {
+                                                    Console.WriteLine("Invalid input for book2.");
+                                                    Console.WriteLine("\nPress any key to exit...");
+                                                    Console.ReadKey();
+                                                    Console.Clear();
+                                                    break;
+                                                }
+                                            }
+
+                                            Console.Write("Please enter the Last day of Slot 1 date in the format \x1b[32mdd/MM/yyyy\x1b[0m: ");
+                                            input = Console.ReadLine();
+                                            DateTime date;
+                                            if (!string.IsNullOrEmpty(input))
+                                            {
+                                                if (DateTime.TryParseExact(input, "dd/MM/yyyy",
+                                                System.Globalization.CultureInfo.InvariantCulture,
+                                                System.Globalization.DateTimeStyles.None, out date))
+                                                {
+                                                    driverToUpdate.endOfBook1 = date;
+                                                }
+                                                else
+                                                {
+                                                    Console.WriteLine("Invalid date format entered.");
+                                                    Console.WriteLine("\nPress any key to exit...");
+                                                    Console.ReadKey();
+                                                    Console.Clear();
+                                                    break;
+                                                }
+                                            }
+
+                                            Console.Write("Please enter the Last day of Slot 2 date in the format \x1b[32mdd/MM/yyyy\x1b[0m: ");
+                                            input = Console.ReadLine();
+                                            if (!string.IsNullOrEmpty(input))
+                                            {
+                                                if (DateTime.TryParseExact(input, "dd/MM/yyyy",
+                                                System.Globalization.CultureInfo.InvariantCulture,
+                                                System.Globalization.DateTimeStyles.None, out date))
+                                                {
+                                                    driverToUpdate.endOfBook2 = date;
+                                                }
+                                                else
+                                                {
+                                                    Console.WriteLine("Invalid date format entered.");
+                                                    Console.WriteLine("\nPress any key to exit...");
+                                                    Console.ReadKey();
+                                                    Console.Clear();
+                                                    break;
+                                                }
+                                            }
+
+                                            // Update the CSV file
+                                            reader.UpdateDriverInfo(driverFilePath, driverIDToUpdate, driverToUpdate);
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine($"Driver ID \u001b[31m{driverIDToUpdate}\u001b[01m not found.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        break;
+                                    case 5:
+                                        Console.Clear();
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Deleting Driver Info.");
+                                        Console.ResetColor();
+                                        existingDriverInfo = DriverInfoManager.ReadDriverInfo(driverFilePath);
+                                        lines = File.ReadAllLines(driverFilePath).Skip(1).ToArray();
+                                        // Check if file is empty
+                                        if (lines.Length == 0)
+                                        {
+                                            Console.WriteLine("No data available at the moment.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        DriverInfoManager.DisplayDriverInfo(driverFilePath);
+
+                                        Console.WriteLine("Enter Driver ID to delete:");
+                                        int driverIDToDelete;
+                                        if (!int.TryParse(Console.ReadLine(), out driverIDToDelete))
+                                        {
+                                            Console.WriteLine("Please enter a valid Driver ID:");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        DriverInfoManager.DeleteDriverInfo(driverFilePath, driverIDToDelete);
+
+                                        Console.WriteLine("\nPress any key to exit...");
+                                        Console.ReadKey();
+                                        Console.Clear();
+                                        break;
+                                    case 6:
+                                        PassengerInfoManager.AddPassengerInfo(passengerFilePath, baseFare1, baseFare2, baseFare3);
+                                        break;
+                                    case 7:
+                                        Console.Clear();
+                                        existingPassengerInfo = PassengerInfoManager.ReadPassengerInfo(passengerFilePath);
+                                        lines = File.ReadAllLines(passengerFilePath).Skip(1).ToArray();
+                                        if (lines.Length == 0)
+                                        {
+                                            Console.WriteLine("No data available at the moment.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        else if (!File.Exists(passengerFilePath))
+                                        {
+                                            Console.WriteLine("The file does not exist.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Displaying Passenger Info.");
+                                        Console.ResetColor();
+                                        PassengerInfoManager.DisplayPassengerInfo(passengerFilePath);
+                                        Console.WriteLine("\nPress any key to exit...");
+                                        Console.ReadKey();
+                                        Console.Clear();
+                                        break;
+                                    case 8:
+                                        Console.Clear();
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Searching Passenger Info.");
+                                        Console.ResetColor();
+                                        PassengerInfoManager.DisplayPassengerInfo(passengerFilePath);
+                                        PassengerInfoManager.SearchPassengerInfo(passengerFilePath);
+                                        break;
+                                    case 9:
+                                        Console.Clear();
+                                        existingPassengerInfo = PassengerInfoManager.ReadPassengerInfo(passengerFilePath);
+                                        lines = File.ReadAllLines(passengerFilePath).Skip(1).ToArray();
+                                        if (lines.Length == 0)
+                                        {
+                                            Console.WriteLine("No data available at the moment.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        else if (!File.Exists(passengerFilePath))
+                                        {
+                                            Console.WriteLine("The file does not exist.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Deleting a Booked Passenger Info.");
+                                        PassengerInfoManager.DisplayPassengerInfo(passengerFilePath);
+                                        Console.Write("Enter the booking date (MM/dd/yyyy hh:mm:ss tt format): ");
+                                        bookingDateInput = Console.ReadLine();
+
+                                        PassengerInfoManager.DeleteInfoByDate(passengerFilePath, bookingDateInput); //12/19/2023 12:33:47 AM
+                                        Console.WriteLine("\nPress any key to exit...");
+                                        Console.ReadKey();
+                                        Console.Clear();
+                                        break;
+                                    case 10:
+                                        existingDriverInfo = DriverInfoManager.ReadDriverInfo(driverFilePath);
+                                        lines = File.ReadAllLines(driverFilePath).Skip(1).ToArray();
+                                        if (lines.Length == 0)
+                                        {
+                                            Console.WriteLine("No data available at the moment.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        if (File.Exists(driverFilePath))
+                                        {
+                                            DriverInfoManager.DisplayDriverInfo(driverFilePath);
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("The file is empty at the moment");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                        }
+                                        while (true)
+                                        {
+                                            Console.Clear();
+                                            Console.ForegroundColor = ConsoleColor.Yellow;
+                                            Console.WriteLine("Booking a Driver.");
+                                            Console.ResetColor();
+                                            string[] bookinglineintro = {
+    "╔══════════════════════════════════════════════════════════╗",
+    "║  This is a kilometer and in monthly base booking.        ║",
+    "║  Through this, you are required to contact the driver by ║",
+    "║  its phone number in order to proceed with the service   ║",
+    "║  \x1b[32mDo you want to continue? (y/n)\x1b[0m                          ║",
+    "╚══════════════════════════════════════════════════════════╝"
+};
+                                            foreach (string line in bookinglineintro)
+                                            {
+                                                Console.WriteLine(line);
+                                            }
+
+                                            userInput = Console.ReadKey().KeyChar;
+                                            Console.WriteLine();
+
+                                            if (userInput == 'y' || userInput == 'Y')
+                                            {
+                                                break;
+                                            }
+                                            else if (userInput == 'n' || userInput == 'N')
+                                            {
+                                                break;
+                                            }
+                                            else
+                                            {
+                                                continue;
+                                            }
+                                        }
+                                        if (userInput == 'N' || userInput == 'n')
+                                        {
+                                            Console.Clear();
+                                            break;
+                                        }
+
+                                        Console.Clear();
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Booking a Driver.");
+                                        Console.ResetColor();
+                                        DriverInfoManager.DisplayDriverInfo(driverFilePath);
+                                        Console.WriteLine("Enter Driver ID to book:");
+                                        int assignedDriver;
+                                        if (!int.TryParse(Console.ReadLine(), out assignedDriver))
+                                        {
+                                            Console.WriteLine("Please enter a valid Driver ID:");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+
+                                        int valuefortrue;
+                                        driverToUpdate = existingDriverInfo.FirstOrDefault(d => d.DriverID == assignedDriver);
+
+                                        if (driverToUpdate != null)
+                                        {
+
+                                            string vehicleD = DriverInfoManager.Confirmation(driverFilePath, assignedDriver);
+                                            if (!driverToUpdate.book1 && !driverToUpdate.book2)
+                                            {
+                                                valuefortrue = 1;
+                                                driverToUpdate.book1 = true;
+                                            }
+                                            else if (!driverToUpdate.book2 && driverToUpdate.book1)
+                                            {
+                                                valuefortrue = 2;
+                                                driverToUpdate.book2 = true;
+                                            }
+                                            else
+                                            {
+                                                Console.WriteLine("The driver is fully booked. Please choose another driver");
+                                                Console.WriteLine("\nPress any key to exit...");
+                                                Console.ReadKey();
+                                                Console.Clear();
+                                                break;
+                                            }
+
+
+                                            int Tchoice;
+                                            int months = 0;
+                                            DateTime now = DateTime.Now;
+                                            int currentYear = now.Year;
+                                            int currentMonth = now.Month;
+
+                                            Console.Write("Enter the number of month(s): ");
+                                            while (true)
+                                            {
+                                                if (!int.TryParse(Console.ReadLine(), out months) || months <= 0)
+                                                {
+                                                    Console.WriteLine("Invalid input. Please enter a number");
+                                                    continue;
+                                                }
+                                                else
+                                                {
+                                                    break;
+                                                }
+                                            }
+                                            int days = 0;
+                                            int MService = 0;
+                                            int totalWeekdays = 0;
+                                            int totalWeekends = 0;
+
+
+                                            DateTime lastDate = now.AddMonths(months);
+                                            DateTime lastDay = lastDate.AddDays(0);
+
+                                            for (DateTime currentDate = now; currentDate < lastDate; currentDate = currentDate.AddDays(1))
+                                            {
+                                                if (currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday)
+                                                {
+                                                    totalWeekends++;
+                                                }
+                                                else
+                                                {
+                                                    totalWeekdays++;
+                                                }
+
+                                            }
+                                            int totaldays = totalWeekdays + totalWeekends;
+                                            Console.WriteLine();
+                                            Console.WriteLine("═══════════════════════════════════════════════════════════════════════");
+                                            Console.WriteLine($" Total days for the next \x1b[36m{months}\x1b[0m month(s): \x1b[36m{totaldays}\x1b[0m  ");
+                                            Console.WriteLine($" Total weekdays for the next \x1b[36m{months}\x1b[0m month(s): \x1b[36m{totalWeekdays}\x1b[0m  ");
+                                            Console.WriteLine($" Total weekends for the next \x1b[36m{months}\x1b[0m month(s): \x1b[36m{totalWeekends}\x1b[0m ");
+                                            Console.WriteLine($" The last day within the specified range is: \x1b[36m{lastDay:D}\x1b[0m ");
+                                            Console.WriteLine("═══════════════════════════════════════════════════════════════════════");
+
+
+                                            Console.WriteLine("Is the service required \x1b[31mdaily\x1b[0m, \x1b[33mweekdays only\x1b[0m, or \x1b[32mweekends only\x1b[0m?");
+                                            Console.WriteLine("1. \x1b[31mDaily\x1b[0m");
+                                            Console.WriteLine("2. \x1b[33mWeekdays\x1b[0m");
+                                            Console.WriteLine("3. \x1b[32mWeekends\x1b[0m");
+                                            Console.Write("--Please select an option?-- :");
+                                            if (!int.TryParse(Console.ReadLine(), out Tchoice) || Tchoice <= 0)
+                                            {
+                                                Console.WriteLine("Invalid input. Please enter a number");
+                                                Console.WriteLine("\nPress any key to return...");
+                                                Console.ReadKey();
+                                                Console.Clear();
+                                                return;
+                                            }
+                                            switch (Tchoice)
+                                            {
+                                                case 1:
+                                                    days = totalWeekdays + totalWeekends;
+                                                    break;
+                                                case 2:
+                                                    days = totalWeekdays;
+                                                    break;
+                                                case 3:
+                                                    days = totalWeekends;
+                                                    break;
+                                                default:
+                                                    Console.WriteLine("Invalid choice. Please select a valid option.");
+                                                    Console.WriteLine("\nPress any key to return...");
+                                                    Console.ReadKey();
+                                                    Console.Clear();
+                                                    return;
+                                            }
+
+                                            Console.Write($"Enter the number of times you'll require the service of the driver in a single day: ");
+                                            if (!int.TryParse(Console.ReadLine(), out MService) || MService <= 0)
+                                            {
+                                                Console.WriteLine("Invalid input. Please enter a number");
+                                                return;
+                                            }
+
+                                            if (valuefortrue == 1)
+                                            {
+                                                driverToUpdate.endOfBook1 = lastDay;
+                                            }
+                                            else if (valuefortrue != 2)
+                                            {
+                                                driverToUpdate.endOfBook2 = lastDay;
+                                            }
+
+                                            bool loopExecuted = PassengerInfoManager.BookingAddPassengerInfo(passengerFilePath1, assignedDriver, vehicleD, baseFare1, baseFare2, baseFare3, days, MService, lastDay);
+
+                                            if (!loopExecuted)
+                                            {
+                                                Console.WriteLine("No passengers were added. Exiting...");
+                                                return; // Break out of the current method or switch statement
+                                            }
+
+
+                                            reader.UpdateDriverInfo(driverFilePath, assignedDriver, driverToUpdate);
+                                            Console.WriteLine("\nThank you for your cooperation. Press any key to exit.");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine($"Driver ID {assignedDriver} not found.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        break;
+                                    case 11:
+                                        Console.Clear();
+                                        lines = File.ReadAllLines(passengerFilePath1).Skip(1).ToArray();
+                                        if (lines.Length == 0)
+                                        {
+                                            Console.WriteLine("No data available at the moment.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        else if (!File.Exists(passengerFilePath1))
+                                        {
+                                            Console.WriteLine("The file does not exist.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Displaying Bookings of Passenger Info.");
+                                        Console.ResetColor();
+                                        PassengerInfoManager.BookedDisplayPassengerInfo(passengerFilePath1);
+                                        Console.WriteLine("\nPress any key to exit...");
+                                        Console.ReadKey();
+                                        Console.Clear();
+                                        break;
+                                    case 12:
+                                        Console.Clear();
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("SearchingBooked Passenger Info.");
+                                        Console.ResetColor();
+                                        PassengerInfoManager.BookedDisplayPassengerInfo(passengerFilePath1);
+                                        PassengerInfoManager.SearchBookedPassengerInfo(passengerFilePath1);
+                                        break;
+                                    case 13:
+                                        //delete a book passenger
+                                        Console.Clear();
+                                        existingPassengerInfo = PassengerInfoManager.ReadPassengerInfo(passengerFilePath1);
+                                        lines = File.ReadAllLines(passengerFilePath1).Skip(1).ToArray();
+                                        if (lines.Length == 0)
+                                        {
+                                            Console.WriteLine("No data available at the moment.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        else if (!File.Exists(passengerFilePath1))
+                                        {
+                                            Console.WriteLine("The file does not exist.");
+                                            Console.WriteLine("\nPress any key to exit...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Deleting a Booked Passenger Info.");
+                                        PassengerInfoManager.DisplayPassengerInfo(passengerFilePath1);
+                                        Console.Write("Enter the booking date (MM/dd/yyyy hh:mm:ss tt format): ");
+                                        bookingDateInput = Console.ReadLine();
+
+                                        PassengerInfoManager.DeleteInfoByDate(passengerFilePath1, bookingDateInput); //12/19/2023 12:33:47 AM
+
+
+
+                                        Console.WriteLine("\nPress any key to exit...");
+                                        Console.ReadKey();
+                                        Console.Clear();
+                                        break;
+                                    case 14:
+                                        //set base fares
+                                        Console.Clear();
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Setting Base Fare.");
+                                        Console.ResetColor();
+                                        Console.WriteLine($"1. Motorcycle - Current Base Fare: {baseFare1:F2}");
+                                        Console.WriteLine($"2. Cycle Rickshaw - Current Base Fare: {baseFare2:F2}");
+                                        Console.WriteLine($"3. Tricycle - Current Base Fare: {baseFare3:F2}");
+
+                                        Console.Write("Adjust base fare of vehicle: ");
+
+                                        if (!int.TryParse(Console.ReadLine(), out int vehicleChoice) || vehicleChoice < 1 || vehicleChoice > 3)
+                                        {
+                                            Console.WriteLine("Enter a valid option (1-3) for the vehicle");
+                                            Console.WriteLine("\nPress any key to continue...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            return; // Restart the method if the input is invalid
+                                        }
+
+                                        Console.Write($"Adjust Base fare of ");
+                                        double selectedBaseFare;
+                                        switch (vehicleChoice)
+                                        {
+                                            case 1:
+                                                Console.Write($"Motorcycle from {baseFare1:F2} to: ");
+                                                break;
+                                            case 2:
+                                                Console.Write($"Cycle Rickshaw from {baseFare2:F2} to: ");
+                                                break;
+                                            case 3:
+                                                Console.Write($"Tricycle from {baseFare3:F2} to: ");
+                                                break;
+
+                                        }
+
+                                        if (!double.TryParse(Console.ReadLine(), out selectedBaseFare))
+                                        {
+                                            Console.WriteLine("Enter a valid value for the base fare");
+                                            Console.WriteLine("\nPress any key to continue...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            return; // Restart the method if the input is invalid
+                                        }
+
+                                        switch (vehicleChoice)
+                                        {
+                                            case 1:
+                                                baseFare1 = selectedBaseFare;
+                                                break;
+                                            case 2:
+                                                baseFare2 = selectedBaseFare;
+                                                break;
+                                            case 3:
+                                                baseFare3 = selectedBaseFare;
+                                                break;
+                                        }
+
+                                        // Save updated base fares to the text file
+                                        try
+                                        {
+                                            using (StreamWriter writer = new StreamWriter("baseFares.txt"))
+                                            {
+                                                writer.WriteLine(baseFare1);
+                                                writer.WriteLine(baseFare2);
+                                                writer.WriteLine(baseFare3);
+                                            }
+                                            Console.Clear();
+                                            Console.WriteLine("Base fare updated successfully and saved to file!");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Console.WriteLine($"Error saving base fares: {ex.Message}");
+                                        }
+
+                                        Console.WriteLine("\nPress any key to continue...");
+                                        Console.ReadKey();
+                                        Console.Clear();
+                                        break;
+                                    case 15:
+
+                                        Console.Clear();
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("Setting a new admin password.");
+                                        Console.ResetColor();
+                                        Console.Write("Enter a new password: ");
+                                        string passwordinput = HideInput();
+                                        Console.Write("Confirm your password: ");
+                                        string confirmationpassword = HideInput();
+                                        if (confirmationpassword == passwordinput)
+                                        {
+
+                                            Console.WriteLine("Setting a new admin password was successful.");
+                                            ADMINDPWORD = confirmationpassword;
+                                            Console.WriteLine("\nPress any key to continue...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            try
+                                            {
+                                                using (StreamWriter writer = new StreamWriter("baseFares.txt"))
+                                                {
+                                                    writer.WriteLine(baseFare1);
+                                                    writer.WriteLine(baseFare2);
+                                                    writer.WriteLine(baseFare3);
+                                                    writer.WriteLine(ADMINDPWORD);
+                                                }
+                                                Console.Clear();
+                                                Console.WriteLine("Password is now saved");
+                                                Console.Clear();
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Console.WriteLine($"Error saving base fares: {ex.Message}");
+                                            }
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Confirmation password is not equal to the first password");
+                                            Console.WriteLine("\nPress any key to continue...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            break;
+                                        }
+
+                                    default:
+                                        Console.WriteLine("Invalid Input. Please enter a valid input");
+                                        Console.WriteLine("\nPress any key to continue...");
+                                        Console.ReadKey();
+                                        Console.Clear();
+                                        break;
+
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Redirecting back");
+                            Console.ReadKey();
+                            Console.Clear();
+                        }
+                    }
+                    else
+                    {
+                        if (!int.TryParse(Pchoice, out choice))
+                        {
+                            Console.WriteLine("Invalid input. Please enter a number.\n Press any key to continue...");
+                            Console.ReadKey();
+                            Console.Clear();
+                            continue;
+                        }
+
+                        selectedVehicleType = 0;
+                        switch (choice)
+                        {
+                            case 1:
+                                PassengerInfoManager.AddPassengerInfo(passengerFilePath, baseFare1, baseFare2, baseFare3);
+                                break;
+                            case 2:
+                                //book a driver
+                                existingDriverInfo = DriverInfoManager.ReadDriverInfo(driverFilePath);
+                                string[] lines = File.ReadAllLines(driverFilePath).Skip(1).ToArray();
+                                if (lines.Length == 0)
+                                {
+                                    Console.WriteLine("No data available at the moment.");
+                                    Console.WriteLine("\nPress any key to exit...");
+                                    Console.ReadKey();
+                                    Console.Clear();
+                                    break;
+                                }
+                                if (File.Exists(driverFilePath))
+                                {
+                                    DriverInfoManager.DisplayDriverInfo(driverFilePath);
+                                }
+                                else
+                                {
+                                    Console.WriteLine("The file is empty at the moment");
+                                    Console.WriteLine("\nPress any key to exit...");
+                                    Console.ReadKey();
+                                    Console.Clear();
+                                }
+                                while (true)
+                                {
+                                    Console.Clear();
+                                    Console.ForegroundColor = ConsoleColor.Yellow;
+                                    Console.WriteLine("Booking a Driver.");
+                                    Console.ResetColor();
+                                    string[] bookinglineintro = {
+    "╔══════════════════════════════════════════════════════════╗",
+    "║  This is a kilometer and in monthly base booking.        ║",
+    "║  Through this, you are required to contact the driver by ║",
+    "║  its phone number in order to proceed with the service   ║",
+    "║  \x1b[32mDo you want to continue? (y/n)\x1b[0m                          ║",
+    "╚══════════════════════════════════════════════════════════╝"
+};
+                                    foreach (string line in bookinglineintro)
+                                    {
+                                        Console.WriteLine(line);
+                                    }
+
+                                    userInput = Console.ReadKey().KeyChar;
+                                    Console.WriteLine();
+
+                                    if (userInput == 'y' || userInput == 'Y')
+                                    {
+                                        break;
+                                    }
+                                    else if (userInput == 'n' || userInput == 'N')
+                                    {
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        continue;
+                                    }
+                                }
+                                if (userInput == 'N' || userInput == 'n')
+                                {
+                                    Console.Clear();
+                                    break;
+                                }
+
+
+
+                                Console.Clear();
+                                Console.ForegroundColor = ConsoleColor.Yellow;
+                                Console.WriteLine("Booking a Driver.");
+                                Console.ResetColor();
+                                DriverInfoManager.DisplayDriverInfo(driverFilePath);
+                                Console.WriteLine("Enter Driver ID to book:");
+                                int assignedDriver;
+                                if (!int.TryParse(Console.ReadLine(), out assignedDriver))
+                                {
+                                    Console.WriteLine("Please enter a valid Driver ID:");
+                                    Console.WriteLine("\nPress any key to exit...");
+                                    Console.ReadKey();
+                                    Console.Clear();
+                                    break;
+                                }
+                                int valuefortrue;
+                                driverToUpdate = existingDriverInfo.FirstOrDefault(d => d.DriverID == assignedDriver);
+
+                                if (driverToUpdate != null)
+                                {
+
+
+                                    if (!driverToUpdate.book1 && !driverToUpdate.book2)
+                                    {
+                                        valuefortrue = 1;
+                                        driverToUpdate.book1 = true;
+                                    }
+                                    else if (!driverToUpdate.book2 && driverToUpdate.book1)
+                                    {
+                                        valuefortrue = 2;
+                                        driverToUpdate.book2 = true;
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("The driver is fully booked. Please choose another driver");
+                                        Console.WriteLine("\nPress any key to exit...");
+                                        Console.ReadKey();
+                                        Console.Clear();
+                                        break;
+                                    }
+
+                                    string vehicleD = DriverInfoManager.Confirmation(driverFilePath, assignedDriver);
+                                    int Tchoice;
+                                    int months = 0;
+                                    DateTime now = DateTime.Now;
+                                    int currentYear = now.Year;
+                                    int currentMonth = now.Month;
+
+                                    Console.Write("Enter the number of month(s): ");
+                                    while (true)
+                                    {
+                                        if (!int.TryParse(Console.ReadLine(), out months) || months <= 0)
+                                        {
+                                            Console.WriteLine("Invalid input. Please enter a number");
+                                            continue;
+                                        }
+                                        else
+                                        {
+                                            break;
+                                        }
+                                    }
+                                    int days = 0;
+                                    int MService = 0;
+                                    int totalWeekdays = 0;
+                                    int totalWeekends = 0;
+
+
+                                    DateTime lastDate = now.AddMonths(months);
+                                    DateTime lastDay = lastDate.AddDays(0);
+
+                                    for (DateTime currentDate = now; currentDate < lastDate; currentDate = currentDate.AddDays(1))
+                                    {
+                                        if (currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday)
+                                        {
+                                            totalWeekends++;
+                                        }
+                                        else
+                                        {
+                                            totalWeekdays++;
+                                        }
+
+                                    }
+                                    int totaldays = totalWeekdays + totalWeekends;
+                                    Console.WriteLine();
+                                    Console.WriteLine("═══════════════════════════════════════════════════════════════════════");
+                                    Console.WriteLine($" Total days for the next \x1b[36m{months}\x1b[0m month(s): \x1b[36m{totaldays}\x1b[0m  ");
+                                    Console.WriteLine($" Total weekdays for the next \x1b[36m{months}\x1b[0m month(s): \x1b[36m{totalWeekdays}\x1b[0m  ");
+                                    Console.WriteLine($" Total weekends for the next \x1b[36m{months}\x1b[0m month(s): \x1b[36m{totalWeekends}\x1b[0m ");
+                                    Console.WriteLine($" The last day within the specified range is: \x1b[36m{lastDay:D}\x1b[0m ");
+                                    Console.WriteLine("═══════════════════════════════════════════════════════════════════════");
+
+
+                                    Console.WriteLine("Is the service required \x1b[31mdaily\x1b[0m, \x1b[33mweekdays only\x1b[0m, or \x1b[32mweekends only\x1b[0m?");
+                                    Console.WriteLine("1. \x1b[31mDaily\x1b[0m");
+                                    Console.WriteLine("2. \x1b[33mWeekdays\x1b[0m");
+                                    Console.WriteLine("3. \x1b[32mWeekends\x1b[0m");
+                                    Console.Write("--Please select an option?-- :");
+                                    if (!int.TryParse(Console.ReadLine(), out Tchoice) || Tchoice <= 0)
+                                    {
+                                        Console.WriteLine("Invalid input. Please enter a number");
+                                        Console.WriteLine("\nPress any key to return...");
+                                        Console.ReadKey();
+                                        Console.Clear();
+                                        return;
+                                    }
+                                    switch (Tchoice)
+                                    {
+                                        case 1:
+                                            days = totalWeekdays + totalWeekends;
+                                            break;
+                                        case 2:
+                                            days = totalWeekdays;
+                                            break;
+                                        case 3:
+                                            days = totalWeekends;
+                                            break;
+                                        default:
+                                            Console.WriteLine("Invalid choice. Please select a valid option.");
+                                            Console.WriteLine("\nPress any key to return...");
+                                            Console.ReadKey();
+                                            Console.Clear();
+                                            return;
+                                    }
+
+                                    Console.Write($"Enter the number of times you'll require the service of the driver in a single day: ");
+                                    if (!int.TryParse(Console.ReadLine(), out MService) || MService <= 0)
+                                    {
+                                        Console.WriteLine("Invalid input. Please enter a number");
+                                        return;
+                                    }
+
+                                    if (valuefortrue == 1)
+                                    {
+                                        driverToUpdate.endOfBook1 = lastDay;
+                                    }
+                                    else if (valuefortrue != 2)
+                                    {
+                                        driverToUpdate.endOfBook2 = lastDay;
+                                    }
+
+                                    bool loopExecuted = PassengerInfoManager.BookingAddPassengerInfo(passengerFilePath1, assignedDriver, vehicleD, baseFare1, baseFare2, baseFare3, days, MService, lastDay);
+
+                                    if (!loopExecuted)
+                                    {
+                                        Console.WriteLine("No passengers were added. Exiting...");
+                                        return; // Break out of the current method or switch statement
+                                    }
+
+
+                                    reader.UpdateDriverInfo(driverFilePath, assignedDriver, driverToUpdate);
+                                    Console.WriteLine("\nThank you for your cooperation. Press any key to exit.");
+                                    Console.ReadKey();
+                                    Console.Clear();
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"Driver ID {assignedDriver} not found.");
+                                    Console.WriteLine("\nPress any key to exit...");
+                                    Console.ReadKey();
+                                    Console.Clear();
+                                    break;
+                                }
+                                break;
+                                break;
+                            case 3:
+                                Console.Clear();
+                                Console.ForegroundColor = ConsoleColor.Yellow;
+                                Console.WriteLine("Displaying Driver Info.");
+                                Console.ResetColor();
+                                existingDriverInfo = DriverInfoManager.ReadDriverInfo(driverFilePath);
+                                lines = File.ReadAllLines(driverFilePath).Skip(1).ToArray();
+                                if (lines.Length == 0)
+                                {
+                                    Console.WriteLine("No data available at the moment.");
+                                    Console.WriteLine("\nPress any key to exit...");
+                                    Console.ReadKey();
+                                    Console.Clear();
+                                    break;
+                                }
+                                if (File.Exists(driverFilePath))
+                                {
+                                    DriverInfoManager.DisplayDriverInfo(driverFilePath);
+                                    Console.WriteLine("\nPress any key to exit...");
+                                    Console.ReadKey();
+                                    Console.Clear();
+                                }
+                                else
+                                {
+                                    Console.WriteLine("The file is empty at the moment");
+                                    Console.WriteLine("\nPress any key to exit...");
+                                    Console.ReadKey();
+                                    Console.Clear();
+                                }
+                                break;
+                            case 4:
+                                //search a driver
+                                Console.Clear();
+                                Console.ForegroundColor = ConsoleColor.Yellow;
+                                Console.WriteLine("Searching Driver Info.");
+                                Console.ResetColor();
+                                DriverInfoManager.DisplayDriverInfo(driverFilePath);
+                                DriverInfoManager.SearchDriverInfo(driverFilePath);
+                                break;
+                            case 5:
+                                Console.Clear();
+                                Console.ForegroundColor = ConsoleColor.Yellow;
+                                Console.WriteLine("Displaying kilometer (km) distances");
+                                Console.ResetColor();
+                                Console.WriteLine(text);
+                                Console.WriteLine("\nPress any key to continue...");
+                                Console.ReadKey();
+                                Console.Clear();
+                                break;
+                            default:
+                                Console.WriteLine("Invalid choice. Please select a valid option.");
+                                Console.WriteLine("\nPress any key to continue...");
+                                Console.ReadKey();
+                                Console.Clear();
+                                break;
+                        }
+                    }
+                }
+            }
+            catch (FileNotFoundException ex)
+            {
+                Console.WriteLine($"There is no file for that yet: {ex.Message}");
+                Console.WriteLine("\nPress any key to exit...");
+                Console.ReadKey();
+                Console.Clear();
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                Console.WriteLine($"There is no file for that yet in the directory: {ex.Message}");
+                Console.WriteLine("\nPress any key to exit...");
+                Console.ReadKey();
+                Console.Clear();
+            }
+            catch (NullReferenceException ex)
+            {
+                Console.WriteLine($"Null Reference Exception Triggered: {ex.Message}");
+                Console.WriteLine("\nPress any key to exit...");
+                Console.ReadKey();
+                Console.Clear();
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine($"Argument Exception Triggered: {ex.Message}");
+                Console.WriteLine("\nPress any key to exit...");
+                Console.ReadKey();
+                Console.Clear();
+            }
+            catch (SystemException ex)
+            {
+                Console.WriteLine($"System Exception Triggered: {ex.Message}");
+                Console.WriteLine("\nPress any key to exit...");
+                Console.ReadKey();
+                Console.Clear();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                Console.WriteLine("\nPress any key to exit...");
+                Console.ReadKey();
+                Console.Clear();
+            }
+
+        }
+
+        static void LoadBaseFares()
+        {
+            try
+            {
+                string filePath = "baseFares.txt";
+
+                if (File.Exists(filePath))
+                {
+                    string[] lines = File.ReadAllLines(filePath);
+                    baseFare1 = Convert.ToDouble(lines[0]);
+                    baseFare2 = Convert.ToDouble(lines[1]);
+                    baseFare3 = Convert.ToDouble(lines[2]);
+                    ADMINDPWORD = lines[3];
+                }
+                else
+                {
+                    // Create the file with default values
+                    using (StreamWriter sw = File.CreateText(filePath))
+                    {
+                        sw.WriteLine("20"); // Default baseFare1 value
+                        sw.WriteLine("15"); // Default baseFare2 value
+                        sw.WriteLine("10"); // Default baseFare3 value
+                        sw.WriteLine("setter321"); // Default admin password
+                    }
+
+                    // Assign default values
+                    baseFare1 = 20;
+                    baseFare2 = 15;
+                    baseFare3 = 10;
+                    ADMINDPWORD = "setter321";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error loading base fares: " + ex.Message);
+            }
+        }
+
+
+        static void SaveBaseFares()
+        {
+            try
+            {
+                string[] lines = { baseFare1.ToString(), baseFare2.ToString(), baseFare3.ToString() };
+                File.WriteAllLines("baseFares.txt", lines);
+                Console.WriteLine("Base fares saved!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error saving base fares: " + ex.Message);
+            }
+        }
+
+    }
+}
+  
