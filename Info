@@ -1,0 +1,161 @@
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
+
+namespace Info
+    {
+    public abstract class Info1
+    {
+        private string _fname;
+        private string _lname;
+        
+        private char _Sex;
+        private string _vehicle;
+        public string Fname { get { return _fname; } set { _fname = value; } }
+        public string Lname
+        {
+            get { return _lname; }
+            set { _lname = value; }
+        }
+       
+        public char Sex { get { return _Sex; } set { _Sex = value; } }
+        public string Vehicle { get { return _vehicle; } set { _vehicle = value; } }
+        public abstract void DisplayInfo();
+        public static int GenerateRandomNumber(int min, int max)
+        {
+            HashSet<int> generatedNumbers = new HashSet<int>();
+            Random random = new Random();
+            int randomNumber;
+
+            do
+            {
+                randomNumber = random.Next(min, max);
+            } while (!generatedNumbers.Add(randomNumber));
+
+            return randomNumber;
+        }
+
+
+        public static bool ContainsOnlyLetters(string input)
+        {
+            foreach (char c in input)
+            {
+                if (!char.IsLetter(c) && c != ' ') // Check for non-letters and exclude space
+                {
+                    return false; // Return false if a non-letter character is found
+                }
+            }
+            return true; // Return true if all characters are letters or spaces
+        }
+
+        public static string ConvertToTitleCase(string input)
+        {
+            // Split the input string into words
+            string[] words = input.ToLower().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Capitalize the first letter of each word and lowercase the rest
+            for (int i = 0; i < words.Length; i++)
+            {
+                if (words[i].Length > 0)
+                {
+                    char[] letters = words[i].ToCharArray();
+                    letters[0] = char.ToUpper(letters[0]);
+                    for (int j = 1; j < letters.Length; j++)
+                    {
+                        letters[j] = char.ToLower(letters[j]);
+                    }
+                    words[i] = new string(letters);
+                }
+            }
+
+            // Join the modified words to form the title-cased string
+            return string.Join(" ", words);
+        }
+    }
+
+    public class Driverinfo : Info1
+    {
+        private char _mname;
+        private string _address;
+        private string _licensenumber;
+        private int _age;
+        private int _driverid;
+        private string _phonenumber;
+        public char Mname { get { return _mname; } set { _mname = value; } }
+        public int DriverID { get { return _driverid; } set { _driverid = value; } }
+        public string Vehicle {  get; set; }
+        public string Address { get { return _address; } set { _address = value; } }
+        public string Licensenumber  { get { return _licensenumber; }  set { _licensenumber = value; } }
+        public int Age { get { return _age; } set { _age = value; } }
+        public string Phonenumber { get { return _phonenumber; } set { _phonenumber = value; } }
+        public DateTime endOfBook1 { get; set; } 
+        public DateTime endOfBook2 { get; set; } 
+        public bool book1 { get; set; }
+        public bool book2 { get; set; }
+        public override void DisplayInfo()
+        {
+            Console.WriteLine($"Name:\x1b[34m{Lname}, {Fname} {Mname}\x1b[0m \nAge: \x1b[34m{Age}\x1b[0m\nSex: \x1b[34m{Sex}\x1b[0m\nAdress: \x1b[34m{Address}\x1b[0m\nLicensenumber \x1b[34m{Licensenumber}\x1b[0m\nVehicle Type: \x1b[34m{Vehicle}\x1b[0m");
+        }
+
+        public static bool LicenseChecker(string input)
+        {
+            string pattern = @"^[A-Z]\d{2}-\d{2}-\d{6}$";
+            return Regex.IsMatch(input, pattern);
+        }
+        public static bool IsValidPhoneNumber(string input)
+        {
+            string pattern = @"^\+639\d{9}$";
+            return Regex.IsMatch(input, pattern);
+        }
+    }
+    public class PassengerInfo : Info1
+    {
+
+        private string _date;
+        private string _priority;
+        private double _fareExpense;
+        public int Driver { get; set; }
+        public DateTime BookingDate { get; set; }
+        public DateTime endofBooking {get; set;}
+        public double FareExpense { get { return _fareExpense; } set { _fareExpense = value; } }
+        public string Priority { get { return _priority; } set { _priority = value; } }
+        public string Date { get { return _date; } set { _date = value; } }
+        public override void DisplayInfo()
+        {
+            Console.WriteLine($"Name: {Lname}, {Fname} \nSex: {Sex}");
+        }
+            public string FormatPriorityNumber()
+            {
+                DateTime currentTime = DateTime.Now;
+                string day = currentTime.Day.ToString("D2");
+                string month = currentTime.Month.ToString("D2");
+                string year = currentTime.Year.ToString();
+                string hour = currentTime.Hour.ToString("D2");
+                string minute = currentTime.Minute.ToString("D2");
+
+                return $"{hour}{minute}_{year}{month}{day}";
+            }
+
+    }
+    interface FareCalculator
+    {
+        double CalculateFare1(double baseFare, double km);
+        double CalculateFare2(double baseFare);
+        double CalculateFare3(double baseFare, double km);
+        double SetBaseFare1(double baseFare1);
+        double SetBaseFare2(double baseFare2);
+        double SetBaseFare3(double baseFare3);
+    }
+
+}
+
+
+
+
+
+
+
+
