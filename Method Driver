@@ -1,0 +1,537 @@
+using System;
+using System.Formats.Asn1;
+using System.IO;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
+using CsvHelper;
+using CsvHelper.Configuration;
+using Info;
+using System.Globalization;
+using Microsoft.VisualBasic.FileIO;
+using Tables;
+namespace MethodDriver
+{
+
+
+
+
+
+    public class DriverInfoManager : Driverinfo
+    {
+        public static void AddDriverInfo(string filePath)
+        {
+            int number, age;
+            string input;
+            char mname;
+            try
+            {
+                Console.Clear();
+
+                Driverinfo driver = new Driverinfo();
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Adding Driver Info.");
+                Console.ResetColor();
+                Console.Write("Enter Driver First Name: ");
+                input = Console.ReadLine();
+
+                if (!ContainsOnlyLetters(input))
+                {
+                    Console.WriteLine("Input contains numbers or symbols. Please enter a valid name.");
+                    Console.WriteLine("\nPress any key to exit...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return;
+                }
+                driver.Fname = ConvertToTitleCase(input);
+
+                Console.Write("Enter Driver Last Name: ");
+                input = Console.ReadLine();
+                if (!ContainsOnlyLetters(input))
+                {
+                    Console.WriteLine("Input contains numbers or symbols. Please enter a valid name.");
+                    Console.WriteLine("\nPress any key to exit...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return;
+                }
+                driver.Lname = ConvertToTitleCase(input);
+
+                Console.Write("Enter Driver Middle Initial: ");
+
+                input = Console.ReadLine();
+                if (input.Length == 1)
+                {
+                    if (ContainsOnlyLetters(input))
+                    {
+                        mname = Char.ToUpper(input[0]);
+                        driver.Mname = mname;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Input contains numbers or symbols. Please enter a valid name.");
+                        Console.WriteLine("\nPress any key to exit...");
+                        Console.ReadKey();
+                        Console.Clear();
+                        return;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Enter a single character only");
+                    Console.WriteLine("\nPress any key to exit...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return;
+                }
+
+                Console.Write("Enter Driver Age: ");
+                input = Console.ReadLine();
+                if (int.TryParse(input, out age))
+                {
+                    if (age > 17 && age < 60)
+                    {
+                        driver.Age = age;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Age must be between 17 and 60.");
+                        Console.WriteLine("\nPress any key to exit...");
+                        Console.ReadKey();
+                        Console.Clear();
+                        return;
+                    }
+
+                }
+                else
+                {
+                    Console.WriteLine("Please enter an acceptable value of age.");
+                    Console.WriteLine("\nPress any key to exit...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return;
+                }
+                Console.Write("Enter Driver Sex (M for Male or F for female): ");
+                input = Console.ReadLine();
+                if (input.Length == 1 && (input[0] == 'M' || input[0] == 'm' || input[0] == 'F' || input[0] == 'f'))
+                {
+                    driver.Sex = Char.ToUpper(input[0]);
+                }
+                else
+                {
+                    Console.WriteLine("Invalid input. Please enter 'M' or 'F'.");
+                    Console.WriteLine("\nPress any key to exit...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return;
+                }
+
+                Console.Write("Enter Driver Address: ");
+                driver.Address = Console.ReadLine();
+                driver.Address = ConvertToTitleCase(driver.Address);
+
+                Console.Write("Enter License Number (sample format Z00-00-000000): ");
+                driver.Licensenumber = Console.ReadLine();
+
+                if (!LicenseChecker(driver.Licensenumber))
+                {
+                    Console.WriteLine("Please input that is acceptable in the format above.");
+                    Console.WriteLine("\nPress any key to exit...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return;
+                }
+                Console.Write("Enter License Number (sample format +639123456789): ");
+                driver.Phonenumber = Console.ReadLine();
+
+                if (!IsValidPhoneNumber(driver.Phonenumber))
+                {
+                    Console.WriteLine("Please input that is acceptable in the format above.");
+                    Console.WriteLine("\nPress any key to exit...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return;
+                }
+                Console.WriteLine("1. Motorcycle");
+                Console.WriteLine("2. Cycle Rickshaw");
+                Console.WriteLine("3. Tricycle");
+                Console.Write("Enter the vehicle that you are using: ");
+                int vehicle;
+                if (!int.TryParse(Console.ReadLine(), out vehicle))
+                {
+                    Console.WriteLine("Invalid input. Please enter a number.");
+                    Console.WriteLine("\nPress any key to continue...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return;
+                }
+                switch (vehicle)
+                {
+                    case 1:
+                        driver.Vehicle = "Motorcycle";
+                        break;
+                    case 2:
+                        driver.Vehicle = "Cycle Rickshaw";
+                        break;
+                    case 3:
+                        driver.Vehicle = "Tricycle";
+                        break;
+                    default:
+                        Console.WriteLine("Invalid input. Please enter a number.");
+                        Console.WriteLine("\nPress any key to continue...");
+                        Console.ReadKey();
+                        Console.Clear();
+                        return;
+                }
+                driver.book1 = false;
+                driver.book2 = false;
+                driver.DriverID = GenerateRandomNumber(10000, 99999);
+
+
+                Console.WriteLine();
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Are the all the info here correct?");
+                Console.ResetColor();
+                driver.DisplayInfo();
+                Console.Write("Are all the information correct? \x1b[32m[Y]\x1b[0m for \x1b[32mYES\x1b[0m and \x1b[31m[N]\x1b[0m for \x1b[31mNO\x1b[0m: ");
+                input = Console.ReadLine();
+                if (input.Length == 1 && (input[0] == 'Y' || input[0] == 'y'))
+                {
+                }
+                else if (input.Length == 1 && (input[0] == 'N' || input[0] == 'n'))
+                {
+                    Console.WriteLine("Returning to Main Menu....");
+                    Console.WriteLine("Press any key to exit...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid input. Please enter 'Y' or 'N'.");
+                    Console.WriteLine("\nPress any key to exit...");
+                    Console.ReadKey();
+                    Console.Clear();
+                    return;
+                }
+
+                using (var writer = new StreamWriter(filePath, true))
+                using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
+                {
+                    var fileInfo = new FileInfo(filePath);
+                    if (fileInfo.Length == 0)
+                    {
+                        csv.WriteHeader<Driverinfo>();
+                        csv.NextRecord();
+                    }
+
+                    csv.WriteRecord(driver);
+                    csv.NextRecord();
+                }
+
+                Console.WriteLine("Driver information added successfully.");
+                Console.WriteLine("\nPress any key to continue...");
+                Console.ReadKey();
+                Console.Clear();
+            }
+            catch (ArgumentException ex) { Console.WriteLine("Name must not contain a number: {0}", ex.Message); }
+            catch (Exception ex) { Console.WriteLine("There's an error : {0}", ex.Message); }
+
+        }
+        public static List<Driverinfo> ReadDriverInfo(string filePath)
+        {
+            using (var reader = new StreamReader(filePath))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            {
+                var records = csv.GetRecords<Driverinfo>().ToList();
+                return records;
+            }
+        }
+
+        public void UpdateDriverInfo(string filePath, int driverID, Driverinfo updatedDriverInfo)
+        {
+            // Read all lines from the CSV file
+            string[] lines = File.ReadAllLines(filePath);
+
+            // Find the line that matches the driverID
+            var lineIndexToUpdate = Array.FindIndex(lines, line =>
+            {
+                var columns = line.Split(','); // Assuming CSV columns are separated by commas
+                return columns.Length > 0 && columns[1] == driverID.ToString(); // Assuming DriverID is in the first column
+            });
+
+            if (lineIndexToUpdate != -1)
+            {
+                // Construct the updated line with the new information
+                string updatedLine = $"{updatedDriverInfo.Mname},{updatedDriverInfo.DriverID},{updatedDriverInfo.Vehicle},{updatedDriverInfo.Address},{updatedDriverInfo.Licensenumber},{updatedDriverInfo.Age},{updatedDriverInfo.Phonenumber},{updatedDriverInfo.endOfBook1},{updatedDriverInfo.endOfBook2},{updatedDriverInfo.book1},{updatedDriverInfo.book2},{updatedDriverInfo.Fname},{updatedDriverInfo.Lname},{updatedDriverInfo.Sex}";
+
+                // Replace the old line with the updated one in the lines array
+                lines[lineIndexToUpdate] = updatedLine;
+
+                // Write the updated content back to the CSV file
+                File.WriteAllLines(filePath, lines);
+                Console.WriteLine($"Driver ID {driverID} information updated successfully.");
+                Console.WriteLine("\nPress any key to continue...");
+                Console.ReadKey();
+                Console.Clear();
+            }
+            else
+            {
+                Console.WriteLine($"Driver ID {driverID} not found in the CSV file.");
+            }
+        }
+        public static void DeleteDriverInfo(string filePath, int driverIDToDelete)
+        {
+            try
+            {
+                // Read all lines from the CSV file
+                string[] lines = File.ReadAllLines(filePath);
+
+                // Check if file is empty
+                if (lines.Length == 0)
+                {
+                    Console.WriteLine("No data available to delete.");
+                    return;
+                }
+
+                bool foundDriver = false;
+                List<string> updatedLines = new List<string>();
+
+                foreach (string line in lines)
+                {
+                    var columns = line.Split(','); // Assuming CSV columns are separated by commas
+                    if (columns.Length > 0 && columns[1] == driverIDToDelete.ToString()) // Assuming DriverID is in the first column
+                    {
+                        foundDriver = true;
+                        continue; // Skip the line that matches the DriverID (to delete it)
+                    }
+                    updatedLines.Add(line);
+                }
+
+                if (!foundDriver)
+                {
+                    Console.WriteLine($"Driver ID {driverIDToDelete} not found.");
+                    return;
+                }
+
+                // Write the updated content back to the CSV file
+                File.WriteAllLines(filePath, updatedLines);
+
+                Console.WriteLine($"Driver ID {driverIDToDelete} information deleted successfully.");
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("There's an error: " + ex.Message);
+            }
+        }
+        public static void DisplayDriverInfo(string filePath)
+        {
+            try
+            {
+                using (var reader = new StreamReader(filePath))
+                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                {
+                    var records = csv.GetRecords<Driverinfo>().ToList();
+
+                    Tablever2 table = new Tablever2();
+
+                    table.hders("Driver ID", "First Name", "Last Name", "Middle Initial", "Age", "Sex", "Address", "License Number", "Vehicle", "Booking Slot 1", "Booking Slot 2", "Last Day of Slot 1", "Last Day of Slot 2", "Phone Number");
+
+                    foreach (var record in records)
+                    {
+                        table.AddRow(
+                            record.DriverID.ToString(),
+                            record.Fname,
+                            record.Lname,
+                            record.Mname.ToString(),
+                            record.Age.ToString(),
+                            record.Sex.ToString(),
+                            record.Address,
+                            record.Licensenumber,
+                            record.Vehicle,
+                            record.book1.ToString(),
+                            record.book2.ToString(),
+                            record.endOfBook1.ToString(),
+                            record.endOfBook2.ToString(),
+                            record.Phonenumber.ToString());
+                    }
+
+                    Console.WriteLine("Driver Information Table:");
+                    Console.WriteLine(table.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+            }
+        }
+        public static void SearchDriverInfo(string filePath)
+        {
+            try
+            {
+                Console.Write("Search a driver's info: ");
+                string searchInput = Console.ReadLine();
+
+                using (var reader = new StreamReader(filePath))
+                using (var csv = new CsvReader(reader, System.Globalization.CultureInfo.InvariantCulture))
+                {
+                    var records = csv.GetRecords<Driverinfo>().ToList();
+                    var matchingDrivers = records.Where(driver =>
+
+                        driver.Fname.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        driver.Lname.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        driver.DriverID.ToString().IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        driver.Age.ToString().IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        driver.Address.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        driver.Licensenumber.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        driver.book1.ToString().IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        driver.book2.ToString().IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        driver.endOfBook1.ToString().IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        driver.endOfBook2.ToString().IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        driver.Vehicle.IndexOf(searchInput, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+
+                    if (matchingDrivers.Any())
+                    {
+                        Console.WriteLine("\nMatching Driver(s) Information:\n");
+                        foreach (var matchingDriver in matchingDrivers)
+                        {
+                            Console.WriteLine($"Driver ID: {matchingDriver.DriverID}");
+                            Console.WriteLine($"Name: {matchingDriver.Fname} {matchingDriver.Mname} {matchingDriver.Lname}");
+                            Console.WriteLine($"Age: {matchingDriver.Age}");
+                            Console.WriteLine($"Sex: {matchingDriver.Sex}");
+                            Console.WriteLine($"Address: {matchingDriver.Address}");
+                            Console.WriteLine($"License Number: {matchingDriver.Licensenumber}");
+                            Console.WriteLine($"Vehicle: {matchingDriver.Vehicle}");
+                            Console.WriteLine($"Book Slot 1: {matchingDriver.book1}");
+                            Console.WriteLine($"Book Slot 2: {matchingDriver.book2}");
+                            Console.WriteLine($"End Book of Slot 1: {matchingDriver.endOfBook1}");
+                            Console.WriteLine($"End Book of Slot 2: {matchingDriver.endOfBook2}");
+                            Console.WriteLine();
+                        }
+                        Console.WriteLine("\nPress any key to exit...");
+                        Console.ReadKey();
+                        Console.Clear();
+                        return;
+                    }
+                    else
+                    {
+                        Console.WriteLine("No drivers found matching the search criteria.");
+                        Console.WriteLine("\nPress any key to continue...");
+                        Console.ReadKey();
+                        Console.Clear();
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("An error occurred while searching for drivers: {0}", ex.Message);
+            }
+        }
+        public static string Confirmation(string filePath, int DriverID)
+        {
+            try
+            {
+                // Read all lines from the CSV file
+                string[] lines = File.ReadAllLines(filePath);
+
+                // Check if file is empty
+                if (lines.Length == 0)
+                {
+                    Console.WriteLine("No data available to delete.");
+                    return null;
+                }
+
+                string vehicle = null;
+                bool foundDriver = false;
+
+                foreach (string line in lines)
+                {
+                    var columns = line.Split(','); // Assuming CSV columns are separated by commas
+                    if (columns.Length > 1 && columns[1] == DriverID.ToString()) // Assuming DriverID is in the first column and vehicle info in the second column
+                    {
+                        foundDriver = true;
+                        vehicle = columns[2]; // Assuming vehicle info is in the second column (index 1)
+                        break; // Exit loop if the DriverID is found
+                    }
+                }
+
+                if (!foundDriver)
+                {
+                    Console.WriteLine($"Driver ID {DriverID} not found. No action taken.");
+                    return null;
+                }
+
+                return vehicle; // Return the retrieved vehicle value
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("There's an error: " + ex.Message);
+                return null;
+            }
+        }
+        public static void AutomaticUpdate(string filePath)
+        {
+            string[] lines = File.ReadAllLines(filePath);
+
+            for (int i = 1; i < lines.Length; i++) 
+            {
+                var columns = lines[i].Split(',');
+                if (columns.Length > 0)
+                {
+                    int driverID;
+                    if (int.TryParse(columns[1], out driverID))
+                    {
+       
+                        string vehicle = columns[2];
+                        string address = columns[3];
+                        string licenseNumber = columns[4];
+       
+
+                        DateTime endOfBook1;
+                        if (DateTime.TryParse(columns[6], out endOfBook1) && endOfBook1 <= DateTime.Now)
+                        {
+                 
+                            endOfBook1 = DateTime.MinValue;
+                            columns[6] = endOfBook1.ToString(); 
+                            columns[8] = "False"; 
+                        }
+
+                        DateTime endOfBook2;
+                        if (DateTime.TryParse(columns[7], out endOfBook2) && endOfBook2 <= DateTime.Now)
+                        {
+     
+                            endOfBook2 = DateTime.MinValue;
+                            columns[7] = endOfBook2.ToString();
+                            columns[9] = "False"; 
+                        }
+
+
+                        lines[i] = string.Join(",", columns);
+                    }
+                }
+            }
+
+            File.WriteAllLines(filePath, lines);
+            Console.WriteLine("All driver information updated successfully.");
+        }
+
+
+
+        public int GenerateRandomNumber()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool LicenseChecker()
+        {
+            throw new NotImplementedException();
+
+        }
+    }
+
+}
+
+
+
